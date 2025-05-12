@@ -9,6 +9,25 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import illustration from "../../assets/images/illustrations.png";
 import { useNavigate } from "react-router-dom";
+import { fetchWithAuth } from "../../utils/api";
+const validatePassword = (password) => {
+  if (password.length < 9) {
+    return "Mật khẩu phải có ít nhất 9 ký tự.";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ cái thường.";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ cái in hoa.";
+  }
+  if (!/\d/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ số.";
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*).";
+  }
+  return null;
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -47,81 +66,64 @@ const Register = () => {
       return;
     }
 
-    // Validate password length (optional, based on common requirements)
-    if (password.length < 8) {
-      alert("Mật khẩu phải có ít nhất 8 ký tự.");
+    // Validate password
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      alert(passwordError);
       return;
     }
 
     try {
       console.log("Sending request with payload:", JSON.stringify({
-        username,
         email,
         password,
+        username,
       }));
 
-      const response = await fetch("/api/v1/session/signup", {
+      const data = await fetchWithAuth("/session/signup", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "Swagger-Codegen/1.0.0/go",
-          "Access-Control-Allow-Origin": "*",
-        },
         body: JSON.stringify({
-          username,
           email,
           password,
+          username,
         }),
+        headers: {
+          Authorization: undefined, // Override to exclude Authorization header
+        },
       });
-
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-        console.log("Non-JSON response:", data);
-        throw new Error(`Non-JSON response: ${data}`);
-      }
 
       console.log("Full response:", JSON.stringify(data, null, 2));
       console.log("Data object:", data.data);
       console.log("User object:", data.data?.user);
 
-      if (response.ok) {
-        if (!data.data || typeof data.data !== "object") {
-          throw new Error("Data object is missing or invalid in response");
-        }
-        if (!data.data.user || typeof data.data.user !== "object") {
-          throw new Error("User object is missing or invalid in response");
-        }
-
-        const user = data.data.user;
-        console.log("Đăng ký thành công:", data.data);
-
-        // Store data in localStorage (consistent with Login)
-        localStorage.setItem("accessToken", data.data.access_token);
-        localStorage.setItem("refreshToken", data.data.refresh_token);
-        localStorage.setItem("userId", user.id || "unknown");
-        localStorage.setItem("email", user.email || email);
-        localStorage.setItem("username", user.username || username);
-        localStorage.setItem("role", user.role || "USER");
-        localStorage.setItem("avatar", user.avatar || "");
-
-        alert("Tạo tài khoản thành công! Đăng nhập tự động.");
-        navigate("/"); // Redirect to dashboard
-      } else {
-        const errorMessage = {
-          20007: "Email đã được sử dụng.",
-          20008: "Mật khẩu xác nhận không hợp lệ.",
-        }[data.code] || data.message || `Lỗi: ${response.status} ${response.statusText}`;
-        alert(`Đăng ký thất bại: ${errorMessage}`);
+      if (!data.data || typeof data.data !== "object") {
+        throw new Error("Data object is missing or invalid in response");
       }
+      if (!data.data.user || typeof data.data.user !== "object") {
+        throw new Error("User object is missing or invalid in response");
+      }
+
+      const user = data.data.user;
+      console.log("Đăng ký thành công:", data.data);
+
+      // Store data in localStorage (consistent with Login)
+      localStorage.setItem("accessToken", data.data.access_token);
+      localStorage.setItem("refreshToken", data.data.refresh_token);
+      localStorage.setItem("userId", user.id || "unknown");
+      localStorage.setItem("email", user.email || email);
+      localStorage.setItem("username", user.username || username);
+      localStorage.setItem("role", user.role || "USER");
+      localStorage.setItem("avatar", user.avatar || "");
+
+      alert("Tạo tài khoản thành công! Đăng nhập tự động.");
+      navigate("/"); // Redirect to dashboard
     } catch (error) {
       console.error("Lỗi kết nối:", error.message, error.stack);
-      alert("Đã xảy ra lỗi khi kết nối đến server: " + error.message);
+      const errorMessage = {
+        20007: "Email đã được sử dụng.",
+        20008: "Mật khẩu xác nhận không hợp lệ.",
+      }[error.code] || error.message || "Đăng ký thất bại.";
+      alert(`Đăng ký thất bại: ${errorMessage}`);
     }
   };
 

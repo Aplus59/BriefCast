@@ -41,7 +41,6 @@ export default function Header() {
       if (toDate) queryParams.append("to", toDate);
       queryParams.append("sort", sortOrder);
 
-      localStorage.setItem("search_query", searchQuery.trim());
       localStorage.removeItem("topic_title");
 
       navigate(`/papers?${queryParams.toString()}`);

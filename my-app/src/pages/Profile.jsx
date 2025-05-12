@@ -16,6 +16,25 @@ import { Visibility, VisibilityOff, UploadFile } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth } from "../utils/api";
 
+const validatePassword = (password) => {
+  if (password.length < 9) {
+    return "Mật khẩu phải có ít nhất 9 ký tự.";
+  }
+  if (!/[a-z]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ cái thường.";
+  }
+  if (!/[A-Z]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ cái in hoa.";
+  }
+  if (!/\d/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một chữ số.";
+  }
+  if (!/[!@#$%^&*]/.test(password)) {
+    return "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*).";
+  }
+  return null;
+};
+
 export default function Profile() {
   const navigate = useNavigate();
   const [tabIndex, setTabIndex] = useState(0);
@@ -79,6 +98,22 @@ export default function Profile() {
 
     loadUserData();
   }, []);
+  
+  const printCurlCommand = (url, config, method = "GET") => {
+    const { headers, body } = config;
+    const headerStrings = Object.entries(headers || {}).map(([key, value]) => `-H "${key}: ${value}"`);
+    const bodyString = body ? `-d '${body}'` : "";
+    const curlCommand = [
+      `curl -X ${method}`,
+      `"${url}"`,
+      ...headerStrings,
+      bodyString,
+    ]
+      .filter(Boolean)
+      .join(" \\\n  ");
+    console.log("Curl command:\n", curlCommand);
+    return curlCommand;
+  };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -175,8 +210,11 @@ export default function Profile() {
         alert("Mật khẩu mới và xác nhận mật khẩu không khớp.");
         return;
       }
-      if (formData.newPassword.length < 8) {
-        alert("Mật khẩu mới phải có ít nhất 8 ký tự.");
+
+      // Validate new password
+      const passwordError = validatePassword(formData.newPassword);
+      if (passwordError) {
+        alert(passwordError);
         return;
       }
 
@@ -185,22 +223,29 @@ export default function Profile() {
         navigate("/login");
         return;
       }
-
-      await fetchWithAuth(`/users/${userID}/change-password`, {
+      const config = {
         method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify({
           new_password: formData.newPassword,
           old_password: formData.password,
         }),
-      });
+      };
+      printCurlCommand(`/users/${userID}/change-password`, config, "PATCH");
+      await fetchWithAuth(`/users/${userID}/change-password`, config);
 
-      alert("Đổi mật khẩu thành công!");
+      alert("Đổi mật khẩu thành công! Đăng xuất hệ thống.");
       setFormData((prev) => ({
         ...prev,
         password: "",
         newPassword: "",
         confirmNewPassword: "",
       }));
+      await handleLogout();
     } catch (error) {
       console.error("Error changing password:", error);
       const errorMessage = error.response?.data?.message || error.message;
@@ -227,34 +272,16 @@ export default function Profile() {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/v1/session/signout", {
+      console.log("Sending logout request to: /api/v1/session/signout");
+      const response = await fetchWithAuth("/session/signout", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "Swagger-Codegen/1.0.0/go",
-          "Access-Control-Allow-Origin": "*",
-          "Authorization": `Bearer ${localStorage.getItem("accessToken")}`,
-        },
       });
 
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
+      console.log("Logout API response:", response);
 
-      if (response.ok) {
-        localStorage.clear();
-        alert("Đăng xuất thành công!");
-        navigate("/login");
-      } else {
-        const errorMessage = data.message || `Lỗi: ${response.status} ${response.statusText}`;
-        console.error("Logout failed:", errorMessage);
-        alert(`Đăng xuất thất bại: ${errorMessage}`);
-      }
+      localStorage.clear();
+      alert("Đăng xuất thành công!");
+      navigate("/login");
     } catch (error) {
       console.error("Error during logout:", error.message);
       alert("Đã xảy ra lỗi khi đăng xuất: " + error.message);

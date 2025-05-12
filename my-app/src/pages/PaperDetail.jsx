@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Grid, Typography, Button, Box } from "@mui/material";
 import VolumeUpIcon from "@mui/icons-material/VolumeUp";
-import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
-import qs from "qs";
+import { fetchWithAuth } from "../utils/api";
 
 const defaultArticle = {
   title: "Bộ Y tế công bố 21 loại thuốc giả",
@@ -17,6 +16,15 @@ const defaultArticle = {
   datetime: "21/4/2025",
   source: "vnexpress",
   topicId: null,
+};
+const formatDate = (datetime) => {
+  const date = new Date(datetime);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
 const defaultRelatedArticles = [
@@ -38,20 +46,6 @@ function PaperDetail() {
   const [relatedArticles, setRelatedArticles] = useState(defaultRelatedArticles);
   const [error, setError] = useState(null);
 
-  // Hàm tạo lệnh curl từ cấu hình axios
-  const printCurlCommand = (url, config) => {
-    const { headers, params } = config;
-    const queryString = params ? qs.stringify(params, { arrayFormat: "brackets", skipNulls: true }) : "";
-    const headerStrings = Object.entries(headers).map(([key, value]) => `-H "${key}: ${value}"`);
-    const curlCommand = [
-      "curl -X GET",
-      `"${url}${queryString ? "?" + queryString : ""}"`,
-      ...headerStrings,
-    ].join(" \\\n  ");
-    console.log("Curl command:\n", curlCommand);
-    return curlCommand;
-  };
-
   useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -63,21 +57,15 @@ function PaperDetail() {
           return;
         }
 
-        const config = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            lang: "en",
-            Accept: "application/json",
-          },
-        };
-
         // Gọi API chi tiết bài viết
-        printCurlCommand(`/api/v1/articles/${id}`, config);
-        const response = await axios.get(`/api/v1/articles/${id}`, config);
-        console.log("Article API response:", response.data.data);
+        console.log("Fetching article with endpoint:", `/api/v1/articles/${id}`);
+        const response = await fetchWithAuth(`/articles/${id}`, {
+          headers: { lang: "en" },
+        });
+        console.log("Article API response:", response.data);
 
-        if (response.data.data) {
-          const item = response.data.data; // API returns article directly
+        if (response.data) {
+          const item = response.data;
           const formattedArticle = {
             id: item.id || id,
             title: item.title || "Untitled",
@@ -93,45 +81,27 @@ function PaperDetail() {
           setArticle(formattedArticle);
           setError(null);
 
-          // Gọi API bài viết liên quan nếu có topicId
-          if (formattedArticle.topicId) {
-            const relatedConfig = {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                lang: "en",
-                Accept: "application/json",
-              },
-              params: {
-                topic_ids: [formattedArticle.topicId],
-                page: 1,
-                limit: 4,
-              },
-              paramsSerializer: (params) => {
-                return qs.stringify(params, { arrayFormat: "brackets", skipNulls: true });
-              },
-            };
+          // Gọi API bài viết liên quan
+          console.log("Fetching related articles with endpoint:", `/api/v1/articles/${id}/related`);
+          const relatedResponse = await fetchWithAuth(`/articles/${id}/related`, {
+            headers: { lang: "en" },
+          });
+          console.log("Related articles API response:", relatedResponse.data);
 
-            printCurlCommand("/api/v1/articles", relatedConfig);
-            const relatedResponse = await axios.get("/api/v1/articles", relatedConfig);
-            console.log("Related articles API response:", relatedResponse.data);
-
-            if (relatedResponse.data.data && Array.isArray(relatedResponse.data.data.data)) {
-              const formattedRelated = relatedResponse.data.data.data
-                .filter((relatedItem) => relatedItem.id !== id)
-                .map((relatedItem) => ({
-                  id: relatedItem.id || `related-${Math.random()}`,
-                  title: relatedItem.title || "Untitled",
-                  content: relatedItem.summary || ["No summary available"],
-                  imageUrl:
-                    relatedItem.image ||
-                    "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
-                }));
-              setRelatedArticles(formattedRelated);
-            } else {
-              console.warn("Invalid related articles API response, using default data.");
-              setRelatedArticles(defaultRelatedArticles);
-            }
+          if (relatedResponse.data && Array.isArray(relatedResponse.data.data)) {
+            const formattedRelated = relatedResponse.data.data
+              .filter((relatedItem) => relatedItem.id !== id)
+              .map((relatedItem) => ({
+                id: relatedItem.id || `related-${Math.random()}`,
+                title: relatedItem.title || "Untitled",
+                content: relatedItem.summary || ["No summary available"],
+                imageUrl:
+                  relatedItem.image ||
+                  "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
+              }));
+            setRelatedArticles(formattedRelated);
           } else {
+            console.warn("Invalid related articles API response, using default data.");
             setRelatedArticles(defaultRelatedArticles);
           }
         } else {
@@ -142,13 +112,10 @@ function PaperDetail() {
         }
       } catch (error) {
         console.error("API error:", error);
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          navigate("/login");
-        }
         setArticle(defaultArticle);
         setRelatedArticles(defaultRelatedArticles);
         setError(
-          error.response?.data?.message || "Failed to fetch article. Please try again later."
+          error.message || "Failed to fetch article. Please try again later."
         );
       }
     };
@@ -192,7 +159,7 @@ function PaperDetail() {
               >
                 Link bài báo
               </a>
-              <span className="mt-2 md:mt-0 ml-2">Ngày xuất bản: {article.datetime}</span>
+              <span className="mt-2 md:mt-0 ml-2">Ngày xuất bản: {formatDate(article.datetime)}</span>
             </div>
           </div>
         </div>

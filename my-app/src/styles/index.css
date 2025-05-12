@@ -67,6 +67,15 @@ h1 {
 .MuiCardContent-root.MuiCardContent-root.MuiCardContent-root{
   @apply pb-0
 }
+.MuiTypography-root.MuiTypography-root.title{
+  font-weight: 600;
+}
+
+.MuiSvgIcon-root.MuiSvgIcon-root.main{
+  height: 20px;
+  width: 20px;
+}
+
 
 .MuiAvatar-root.profile {
   height: 200px;

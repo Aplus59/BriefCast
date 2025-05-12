@@ -9,6 +9,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import illustration from "../../assets/images/illustrations.png";
 import { useNavigate } from "react-router-dom";
+import { fetchWithAuth } from "../../utils/api";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,89 +33,71 @@ const Login = () => {
       alert("Vui lòng điền đầy đủ email và mật khẩu.");
       return;
     }
-  
+
     // Validate Gmail format
     const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     if (!emailRegex.test(formData.email.trim())) {
       alert("Vui lòng nhập địa chỉ Gmail hợp lệ (ví dụ: example@gmail.com).");
       return;
     }
-  
+
     try {
       console.log("Sending request with payload:", JSON.stringify({
         email: formData.email,
         password: formData.password,
       }));
-  
-      const response = await fetch("/api/v1/session/signin", {
+
+      const data = await fetchWithAuth("/session/signin", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "Swagger-Codegen/1.0.0/go",
-        },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
         }),
       });
-  
-      // Check if response is JSON
-      const contentType = response.headers.get("content-type");
-      let data;
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-        console.log("Non-JSON response:", data);
-        throw new Error(`Non-JSON response: ${data}`);
-      }
-  
+
       console.log("Full response:", JSON.stringify(data, null, 2));
       console.log("Data object:", data.data);
       console.log("User object:", data.data?.user);
-  
-      if (response.ok) {
-        if (!data.data || typeof data.data !== "object") {
-          throw new Error("Data object is missing or invalid in response");
-        }
-        if (!data.data.user || typeof data.data.user !== "object") {
-          throw new Error("User object is missing or invalid in response");
-        }
-  
-        const user = data.data.user;
-        console.log("Đăng nhập thành công:", data.data);
-  
-        // Store data in localStorage
-        localStorage.setItem("accessToken", data.data.access_token);
-        localStorage.setItem("refreshToken", data.data.refresh_token);
-        localStorage.setItem("userId", user.id || "unknown");
-        localStorage.setItem("email", user.email || formData.email);
-        localStorage.setItem("username", user.username || "");
-        localStorage.setItem("role", user.role || "USER");
-        localStorage.setItem("avatar", user.avatar || "");
 
-        const voiceValue = (user.voice || "male") === "male" ? "Giọng nam" : "Giọng nữ";
-        localStorage.setItem("voice", voiceValue);
-
-        alert("Đăng nhập thành công!");
-        navigate("/"); // Redirect to dashboard
-      } else {
-        const errorMessage = {
-          20004: "Tài khoản không tồn tại.",
-          20005: "Mật khẩu không đúng.",
-          20007: "Email đã được sử dụng.",
-        }[data.code] || data.message || `Lỗi: ${response.status} ${response.statusText}`;
-        alert(`Đăng nhập thất bại: ${errorMessage}`);
+      if (!data.data || typeof data.data !== "object") {
+        throw new Error("Data object is missing or invalid in response");
       }
+      if (!data.data.user || typeof data.data.user !== "object") {
+        throw new Error("User object is missing or invalid in response");
+      }
+
+      const user = data.data.user;
+      console.log("Đăng nhập thành công:", data.data);
+
+      // Store data in localStorage
+      localStorage.setItem("accessToken", data.data.access_token);
+      localStorage.setItem("refreshToken", data.data.refresh_token);
+      localStorage.setItem("userId", user.id || "unknown");
+      localStorage.setItem("email", user.email || formData.email);
+      localStorage.setItem("username", user.username || "");
+      localStorage.setItem("role", user.role || "USER");
+      localStorage.setItem("avatar", user.avatar || "");
+
+      const voiceValue = (user.voice || "male") === "male" ? "Giọng nam" : "Giọng nữ";
+      localStorage.setItem("voice", voiceValue);
+
+      alert("Đăng nhập thành công!");
+      navigate("/"); // Redirect to dashboard
     } catch (error) {
-      console.error("Lỗi kết nối:", error.message, error.stack);
-      alert("Đã xảy ra lỗi khi kết nối đến server: " + error.message);
+      console.error("Lỗi đăng nhập:", error.message, error.stack);
+      const errorMessage = {
+        20004: "Tài khoản không tồn tại.",
+        20005: "Mật khẩu không đúng.",
+        20007: "Email đã được sử dụng.",
+      }[error.code] || error.message || "Đã xảy ra lỗi khi đăng nhập.";
+      alert(`Đăng nhập thất bại: ${errorMessage}`);
     }
   };
+
   const handleTogglePassword = () => {
     setShowPassword(!showPassword);
   };
+
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="w-2/5 flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100">
@@ -169,7 +152,7 @@ const Login = () => {
             </div>
             <div>
               <span>Bạn chưa có tài khoản? </span>
-              <Link href="#" className="green" onClick={() => navigate("/register")} >
+              <Link href="#" className="green" onClick={() => navigate("/register")}>
                 Đăng ký
               </Link>
             </div>

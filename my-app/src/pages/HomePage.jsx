@@ -1,11 +1,15 @@
-import { IconButton } from "@mui/material";
+import { IconButton, Card, CardContent, Link, Typography } from "@mui/material";
 import { ArrowBackIos, ArrowForwardIos } from "@mui/icons-material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SkipNextIcon from "@mui/icons-material/SkipNext";
+import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
+import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from 'axios';
+import { fetchWithAuth } from "../utils/api";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import { Card, CardContent, Link, Typography } from '@mui/material';
 
 const fakeTopics = [
   { id: 1, title: "Nông nghiệp", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
@@ -28,6 +32,17 @@ export default function HomeContent() {
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 4;
 
+  // --- Audio states ---
+  const [isPlayingList, setIsPlayingList] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [currentAudioIndex, setCurrentAudioIndex] = useState(-1);
+  const [audioElement, setAudioElement] = useState(null);
+  const [showAudioControls, setShowAudioControls] = useState(false);
+  const newsItemRefs = useRef([]);
+
+  // Lấy giá trị voice từ localStorage
+  const voice = localStorage.getItem("voice") || "Giọng nam";
+
   useEffect(() => {
     console.log("Current location:", location);
   }, [location]);
@@ -47,7 +62,7 @@ export default function HomeContent() {
           navigate("/login");
         } else {
           // Fetch topics and news
-          await Promise.all([fetchTopics(userData.token), fetchLatestNews(userData.token)]);
+          await Promise.all([fetchTopics(), fetchLatestNews()]);
         }
       } catch (error) {
         console.error("Lỗi khi kiểm tra người dùng:", error);
@@ -59,18 +74,14 @@ export default function HomeContent() {
   }, [navigate]);
 
   // --- Fetch topics ---
-  const fetchTopics = async (token) => {
+  const fetchTopics = async () => {
     try {
-      const response = await axios.get('/api/v1/topics/suggest', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const data = await fetchWithAuth("/topics/suggest");
 
-      console.log('Topics API response:', response.data);
+      console.log('Topics API response:', data);
 
-      if (response.data && Array.isArray(response.data.data)) {
-        const formattedTopics = response.data.data.map((topic) => ({
+      if (data && Array.isArray(data.data)) {
+        const formattedTopics = data.data.map((topic) => ({
           id: topic.id || Math.random(),
           title: topic.title || topic.name || "Unknown Topic",
           imgUrl: topic.imgUrl || topic.image || "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
@@ -82,31 +93,26 @@ export default function HomeContent() {
       }
     } catch (error) {
       console.error('Lỗi gọi API topics:', error);
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        navigate("/login");
-      }
       setTopics(fakeTopics);
     }
   };
 
   // --- Fetch latest news ---
-  const fetchLatestNews = async (token) => {
+  const fetchLatestNews = async () => {
     try {
-      const response = await axios.get('/api/v1/articles', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          lang: 'en',
-        },
-        params: {
-          page: 1,
-          limit: 5,
-          sort_by: 'published_date',
-          sort_order: 'desc',
-          favorite: false,
-        },
+      const params = new URLSearchParams({
+        page: 1,
+        limit: 5,
+        sort_by: 'published_date',
+        sort_order: 'desc',
+        favorite: false,
       });
 
-      const articles = response.data.data.data; // Corrected to access response.data.data
+      const data = await fetchWithAuth(`/articles?${params.toString()}`, {
+        headers: { lang: 'en' },
+      });
+
+      const articles = data.data.data;
       if (articles && Array.isArray(articles) && articles.length > 0) {
         const bigNews = {
           id: articles[0].id || Math.random(),
@@ -114,6 +120,9 @@ export default function HomeContent() {
           content: articles[0].summary || ['No content available'],
           imgUrl: articles[0].image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
           is_favorite: articles[0].is_favorite || false,
+          audioUrl: voice === "Giọng nam" ? 
+            (articles[0].male_audio?.url || null) : 
+            (articles[0].female_audio?.url || null),
         };
 
         const smallNews = articles.slice(1, 5).map((article) => ({
@@ -121,6 +130,9 @@ export default function HomeContent() {
           title: article.title || 'Unknown Title',
           imgUrl: article.image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
           is_favorite: article.is_favorite || false,
+          audioUrl: voice === "Giọng nam" ? 
+            (article.male_audio?.url || null) : 
+            (article.female_audio?.url || null),
         }));
         setLatestNews({
           big: bigNews,
@@ -132,15 +144,7 @@ export default function HomeContent() {
       }
     } catch (error) {
       console.error('Error fetching articles:', error);
-      if (error.response?.status === 400) {
-        console.warn('Bad Request: Check query parameters. Using fake data.');
-        setLatestNews({ big: null, small: [] });
-      } else if (error.response?.status === 401 || error.response?.status === 403) {
-        navigate('/login');
-      } else {
-        console.warn('Unexpected error, using fake data.');
-        setLatestNews({ big: null, small: [] });
-      }
+      setLatestNews({ big: null, small: [] });
     }
   };
 
@@ -157,32 +161,142 @@ export default function HomeContent() {
 
   // --- Handle topic click ---
   const handleTopicClick = async (topicId) => {
-  try {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
 
-    const selectedTopic = topics.find((topic) => topic.id === topicId);
-    if (selectedTopic) {
-      localStorage.setItem("topic_title", selectedTopic.title);
-      navigate(`/papers?topic_id=${topicId}`);
-    } else {
-      console.warn("Topic not found for id:", topicId);
-      navigate("/papers");
+      const selectedTopic = topics.find((topic) => topic.id === topicId);
+      if (selectedTopic) {
+        localStorage.setItem("topic_title", selectedTopic.title);
+        navigate(`/papers?topic_id=${topicId}`);
+      } else {
+        console.warn("Topic not found for id:", topicId);
+        navigate("/papers");
+      }
+    } catch (error) {
+      console.error("Lỗi khi xử lý click chủ đề:", error);
+      navigate("/login");
     }
-  } catch (error) {
-    console.error("Lỗi khi xử lý click chủ đề:", error);
-    navigate("/login");
-  }
-};
+  };
 
   // --- Calculate displayed topics ---
   const displayedTopics = topics.slice(
     currentPage * itemsPerPage,
     (currentPage + 1) * itemsPerPage
   );
+
+  // --- Audio handlers ---
+  const stopCurrentAudio = (resetControls = true) => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = "";
+      setAudioElement(null);
+    }
+    setIsPlayingList(false);
+    setIsPaused(false);
+    setCurrentAudioIndex(-1);
+    if (resetControls) {
+      setShowAudioControls(false);
+    }
+  };
+
+  const handlePlayList = () => {
+    if (isPlayingList) {
+      if (isPaused) {
+        audioElement?.play().catch((err) => console.error("Audio play error:", err));
+        setIsPaused(false);
+      } else {
+        audioElement?.pause();
+        setIsPaused(true);
+      }
+    } else {
+      stopCurrentAudio(false); // Keep controls visible
+      if (latestNews.big?.audioUrl) {
+        setIsPlayingList(true);
+        setCurrentAudioIndex(0); // Start with big news
+        setShowAudioControls(true);
+      } else {
+        console.warn("No audio available for the first article.");
+      }
+    }
+  };
+
+  const handleSkip = () => {
+    if (isPlayingList) {
+      const totalItems = (latestNews.big ? 1 : 0) + latestNews.small.length;
+      if (currentAudioIndex < totalItems - 1) {
+        stopCurrentAudio(false); // Keep controls visible
+        setIsPlayingList(true);
+        setCurrentAudioIndex(currentAudioIndex + 1);
+      } else {
+        stopCurrentAudio(true); // Reset controls when no more items
+      }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (isPlayingList && currentAudioIndex > 0) {
+      stopCurrentAudio(false); // Keep controls visible
+      setIsPlayingList(true);
+      setCurrentAudioIndex(currentAudioIndex - 1);
+    }
+  };
+
+  const handleStop = () => {
+    stopCurrentAudio(true); // Reset controls
+  };
+
+  // --- Audio playback logic ---
+  useEffect(() => {
+    if (isPlayingList && !isPaused && currentAudioIndex >= 0) {
+      const allNews = latestNews.big ? [latestNews.big, ...latestNews.small] : latestNews.small;
+      if (currentAudioIndex >= allNews.length || !allNews[currentAudioIndex].audioUrl) {
+        stopCurrentAudio(true); // Reset controls if no audio
+        return;
+      }
+
+      const audioUrl = allNews[currentAudioIndex].audioUrl;
+      const audio = new Audio(audioUrl);
+      setAudioElement(audio);
+
+      audio.play().catch((err) => console.error("Audio play error:", err));
+
+      audio.onended = () => {
+        if (currentAudioIndex < allNews.length - 1) {
+          setCurrentAudioIndex(currentAudioIndex + 1);
+        } else {
+          stopCurrentAudio(true); // Reset controls when playback ends
+        }
+      };
+
+      return () => {
+        audio.pause();
+        audio.src = "";
+      };
+    }
+  }, [currentAudioIndex, isPlayingList, isPaused, latestNews]);
+
+  // --- Scroll to currently playing article ---
+  useEffect(() => {
+    if (isPlayingList && currentAudioIndex >= 0) {
+      const currentItemRef = newsItemRefs.current[currentAudioIndex];
+      if (currentItemRef) {
+        currentItemRef.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    }
+  }, [currentAudioIndex, isPlayingList]);
+
+  // --- Check if current article is the last one ---
+  const isLastItem = () => {
+    const totalItems = (latestNews.big ? 1 : 0) + latestNews.small.length;
+    return currentAudioIndex >= totalItems - 1;
+  };
 
   return (
     <div className="h-full w-full px-4 md:px-24 xl:px-40 2xl:px-60">
@@ -231,42 +345,88 @@ export default function HomeContent() {
             <button
               onClick={() => {
                 localStorage.setItem("topic_title", "Tin mới");
-                navigate(`/papers?topic_id=latest`);
+                navigate(`/papers?type=latest`);
               }}
               className="text-sm bg-gray p-2 text-black rounded-lg"
             >
               Xem thêm
             </button>
-            <VolumeUpIcon />
+            {!showAudioControls ? (
+              <button onClick={handlePlayList}>
+                <VolumeUpIcon className="text-blue-600" />
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={handlePrevious}
+                  disabled={currentAudioIndex === 0}
+                >
+                  <SkipPreviousIcon
+                    className={`text-blue-600 ${currentAudioIndex === 0 ? 'opacity-50' : ''}`}
+                  />
+                </button>
+                <button onClick={handlePlayList}>
+                  {isPlayingList && !isPaused ? (
+                    <PauseIcon className="text-blue-600" />
+                  ) : (
+                    <PlayArrowIcon className="text-blue-600" />
+                  )}
+                </button>
+                <button
+                  onClick={handleSkip}
+                  disabled={isLastItem()}
+                >
+                  <SkipNextIcon
+                    className={`text-blue-600 ${isLastItem() ? 'opacity-50' : ''}`}
+                  />
+                </button>
+                <button onClick={handleStop}>
+                  <CloseIcon className="text-blue-600" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
         {latestNews.big && (
           <div className="flex flex-col rounded-lg shadow py-3 h-full lg:p-4 bg-gray">
             {/* Big News */}
-            <Card 
-              className="flex items-center gap-4 big-new rounded-lg"
-              onClick={() => navigate(`/papers/${latestNews.big.id}`)}>
-              <img src={latestNews.big.imgUrl} alt={latestNews.big.title} className="w-[26vh] h-[25vh] object-cover rounded" />
-              <CardContent className="p-0 w-full">
-                <Typography variant="h6" className="font-semibold mb-2">
-                  {latestNews.big.title}
-                </Typography>
-                <ul className="list-disc pl-5 text-gray-600">
-                  {latestNews.big.content.map((item, index) => (
-                    <li key={index}>
-                      <Typography variant="body2">{item}</Typography>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+            <div
+              ref={(el) => (newsItemRefs.current[0] = el)}
+              className={`flex items-center gap-4 big-new rounded-lg ${
+                currentAudioIndex === 0 && isPlayingList ? 'border-2 border-red-500' : ''
+              }`}
+              onClick={() => navigate(`/papers/${latestNews.big.id}`)}
+            >
+              <Card className="flex items-center gap-4 w-full">
+                <img
+                  src={latestNews.big.imgUrl}
+                  alt={latestNews.big.title}
+                  className="w-[26vh] h-[25vh] object-cover rounded"
+                />
+                <CardContent className="p-0 w-full">
+                  <Typography variant="h6" className="font-semibold mb-2">
+                    {latestNews.big.title}
+                  </Typography>
+                  <ul className="list-disc pl-5 text-gray-600">
+                    {latestNews.big.content.map((item, index) => (
+                      <li key={index}>
+                        <Typography variant="body2">{item}</Typography>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
             {/* Small News */}
             <div className="grid grid-cols-1 mt-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 h-auto">
-              {latestNews.small.map((news) => (
+              {latestNews.small.map((news, index) => (
                 <div
                   key={news.id}
-                  className="bg-white rounded-lg shadow flex flex-col"
+                  ref={(el) => (newsItemRefs.current[index + 1] = el)}
+                  className={`bg-white rounded-lg shadow flex flex-col ${
+                    currentAudioIndex === index + 1 && isPlayingList ? 'border-2 border-red-500' : ''
+                  }`}
                   onClick={() => navigate(`/papers/${news.id}`)}
                 >
                   <img
