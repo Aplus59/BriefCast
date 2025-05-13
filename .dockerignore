@@ -1,0 +1,13 @@
+my-app/node_modules/
+my-app/dist/
+.git/
+.gitignore
+README.md
+my-app/.env.local
+my-app/.env.*
+my-app/.vite/
+my-app/.eslintcache
+my-app/npm-debug.log
+.DS_Store
+*.log
+my-app/*.log

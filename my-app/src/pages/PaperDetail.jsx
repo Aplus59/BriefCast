@@ -59,9 +59,7 @@ function PaperDetail() {
 
         // Gọi API chi tiết bài viết
         console.log("Fetching article with endpoint:", `/api/v1/articles/${id}`);
-        const response = await fetchWithAuth(`/articles/${id}`, {
-          headers: { lang: "en" },
-        });
+        const response = await fetchWithAuth(`/articles/${id}`); // Bỏ headers: { lang: "en" }
         console.log("Article API response:", response.data);
 
         if (response.data) {
@@ -83,9 +81,7 @@ function PaperDetail() {
 
           // Gọi API bài viết liên quan
           console.log("Fetching related articles with endpoint:", `/api/v1/articles/${id}/related`);
-          const relatedResponse = await fetchWithAuth(`/articles/${id}/related`, {
-            headers: { lang: "en" },
-          });
+          const relatedResponse = await fetchWithAuth(`/articles/${id}/related`); // Bỏ headers: { lang: "en" }
           console.log("Related articles API response:", relatedResponse.data);
 
           if (relatedResponse.data && Array.isArray(relatedResponse.data.data)) {

@@ -1,6 +1,5 @@
 // src/utils/api.js
-const API_BASE_URL = "/api/v1"; // Được proxy bởi Vite đến http://api.dan.io.vn:30020
-
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
 // Hàm gọi API với access_token
 export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");

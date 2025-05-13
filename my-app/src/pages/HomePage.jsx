@@ -108,9 +108,7 @@ export default function HomeContent() {
         favorite: false,
       });
 
-      const data = await fetchWithAuth(`/articles?${params.toString()}`, {
-        headers: { lang: 'en' },
-      });
+      const data = await fetchWithAuth(`/articles?${params.toString()}`); // Bỏ headers: { lang: 'en' }
 
       const articles = data.data.data;
       if (articles && Array.isArray(articles) && articles.length > 0) {
