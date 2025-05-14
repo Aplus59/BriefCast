@@ -1,12 +1,13 @@
 // src/utils/api.js
-let API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
 // Hàm gọi API với access_token
-export let fetchWithAuth = async (endpoint, options = {}) => {
-  let accessToken = localStorage.getItem("accessToken");
-
-  let headers = {
+export const fetchWithAuth = async (endpoint, options = {}) => {
+  const accessToken = localStorage.getItem("accessToken");
+  const headers = {
     "Content-Type": "application/json",
+    "Accept": "application/json",
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    ...options.headers,
   };
 
   try {
@@ -14,35 +15,53 @@ export let fetchWithAuth = async (endpoint, options = {}) => {
       console.log(">>> Request body:", options.body);
     }
 
-    let response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
       headers,
-      mode: 'cors',
-      credentials: 'include', // nếu backend yêu cầu cookie/session
+      mode: 'cors', // Enable CORS
+      credentials: 'include', // Include credentials
     });
 
-    let contentType = response.headers.get("content-type");
+    const contentType = response.headers.get("content-type");
     let data;
-
+    
     if (contentType && contentType.includes("application/json")) {
       data = await response.json();
     } else {
-      data = await response.text();
-      throw new Error(`Non-JSON response: ${data}`);
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error(`Invalid JSON response: ${text}`);
+      }
+    }
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          return fetchWithAuth(endpoint, {
+            ...options,
+            headers: { ...options.headers, Authorization: `Bearer ${newToken}` },
+          });
+        } else {
+          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        }
+      }
+      throw new Error(data.message || `Lỗi: ${response.status} ${response.statusText}`);
     }
 
     return data;
-
   } catch (error) {
-    console.error("Fetch error:", error);
+    console.error("Lỗi API:", error.message, error.stack);
     throw error;
   }
 };
 
-
 // Hàm làm mới access_token
-let refreshAccessToken = async () => {
+const refreshAccessToken = async () => {
   console.log("rftoken")
-  let refreshToken = localStorage.getItem("refreshToken");
+  const refreshToken = localStorage.getItem("refreshToken");
   if (!refreshToken) {
     localStorage.clear();
     window.location.href = "/login";
@@ -50,23 +69,28 @@ let refreshAccessToken = async () => {
   }
 
   try {
-    let response = await fetch(`${API_BASE_URL}/session/refresh`, {
+    const response = await fetch(`${API_BASE_URL}/session/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "Swagger-Codegen/1.0.0/go",
       },
+      mode: 'cors',
+      credentials: 'include',
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
-    let contentType = response.headers.get("content-type");
+    const contentType = response.headers.get("content-type");
     let data;
     if (contentType && contentType.includes("application/json")) {
       data = await response.json();
     } else {
-      data = await response.text();
-      throw new Error(`Non-JSON response: ${data}`);
+      const text = await response.text();
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error(`Invalid JSON response: ${text}`);
+      }
     }
 
     if (response.ok) {
