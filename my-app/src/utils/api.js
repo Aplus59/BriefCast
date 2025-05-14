@@ -1,66 +1,60 @@
 // src/utils/api.js
+import axios from 'axios';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
+
+// Tạo instance axios với cấu hình mặc định
+const axiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  withCredentials: true
+});
+
 // Hàm gọi API với access_token
 export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");
-  const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json",
-    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-    ...options.headers,
-  };
-
+  
   try {
     if (options.body) {
       console.log(">>> Request body:", options.body);
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const config = {
       ...options,
-      headers,
-      mode: 'cors', // Enable CORS
-      credentials: 'include', // Include credentials
-    });
+      headers: {
+        ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+        ...options.headers
+      },
+      data: options.body
+    };
 
-    const contentType = response.headers.get("content-type");
-    let data;
-    
-    if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        throw new Error(`Invalid JSON response: ${text}`);
-      }
-    }
+    const response = await axiosInstance(endpoint, config);
+    return response.data;
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          return fetchWithAuth(endpoint, {
-            ...options,
-            headers: { ...options.headers, Authorization: `Bearer ${newToken}` },
-          });
-        } else {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        }
-      }
-      throw new Error(data.message || `Lỗi: ${response.status} ${response.statusText}`);
-    }
-
-    return data;
   } catch (error) {
-    console.error("Lỗi API:", error.message, error.stack);
-    throw error;
+    if (error.response?.status === 401) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return fetchWithAuth(endpoint, {
+          ...options,
+          headers: { ...options.headers, Authorization: `Bearer ${newToken}` }
+        });
+      } else {
+        throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+      }
+    }
+    
+    console.error("Lỗi API:", error.message);
+    throw error.response?.data?.message || `Lỗi: ${error.message}`;
   }
 };
 
 // Hàm làm mới access_token
 const refreshAccessToken = async () => {
-  console.log("rftoken")
+  console.log("rftoken");
   const refreshToken = localStorage.getItem("refreshToken");
   if (!refreshToken) {
     localStorage.clear();
@@ -69,37 +63,15 @@ const refreshAccessToken = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/session/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      mode: 'cors',
-      credentials: 'include',
-      body: JSON.stringify({ refresh_token: refreshToken }),
+    const response = await axiosInstance.post('/session/refresh', {
+      refresh_token: refreshToken
     });
 
-    const contentType = response.headers.get("content-type");
-    let data;
-    if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
-    } else {
-      const text = await response.text();
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        throw new Error(`Invalid JSON response: ${text}`);
-      }
-    }
+    const { access_token, refresh_token } = response.data.data;
+    localStorage.setItem("accessToken", access_token);
+    localStorage.setItem("refreshToken", refresh_token);
+    return access_token;
 
-    if (response.ok) {
-      localStorage.setItem("accessToken", data.data.access_token);
-      localStorage.setItem("refreshToken", data.data.refresh_token);
-      return data.data.access_token;
-    } else {
-      throw new Error("Không thể làm mới token.");
-    }
   } catch (error) {
     console.error("Lỗi làm mới token:", error.message);
     localStorage.clear();
