@@ -3,13 +3,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1
 // Hàm gọi API với access_token
 export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");
+
   const headers = {
-    "Content-Type": "application/json",
+    "Content-Type": "application/json", 
     "Accept": "application/json",
-    // Remove CORS headers since they should be set by the server, not the client
-    // These headers are ignored by browsers when set on the client side for security reasons
-    ...options.headers,
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    ...options.headers, // cho phép override
   };
 
   try {
@@ -20,12 +19,13 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
-      // Add credentials option to handle CORS properly
-      credentials: 'include',
+      mode: 'cors',
+      credentials: 'include', // nếu backend yêu cầu cookie/session
     });
 
     const contentType = response.headers.get("content-type");
     let data;
+
     if (contentType && contentType.includes("application/json")) {
       data = await response.json();
     } else {
@@ -33,24 +33,10 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
       throw new Error(`Non-JSON response: ${data}`);
     }
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (newToken) {
-          return fetchWithAuth(endpoint, {
-            ...options,
-            headers: { ...options.headers, Authorization: `Bearer ${newToken}` },
-          });
-        } else {
-          throw new Error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-        }
-      }
-      throw new Error(data.message || `Lỗi: ${response.status} ${response.statusText}`);
-    }
-
     return data;
+
   } catch (error) {
-    console.error("Lỗi API:", error.message, error.stack);
+    console.error("Fetch error:", error);
     throw error;
   }
 };
@@ -72,8 +58,8 @@ const refreshAccessToken = async () => {
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "User-Agent": "Swagger-Codegen/1.0.0/go",
       },
-      credentials: 'include',
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
