@@ -10,6 +10,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useNavigate, useLocation } from "react-router-dom";
 import { fetchWithAuth } from "../utils/api";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import { SkeletonTopicCard, SkeletonNewsCard } from '../components/common/Skeleton';
 
 const fakeTopics = [
   { id: 1, title: "Nông nghiệp", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
@@ -30,6 +31,7 @@ export default function HomeContent() {
   const [topics, setTopics] = useState(fakeTopics);
   const [latestNews, setLatestNews] = useState({ big: null, small: [] });
   const [currentPage, setCurrentPage] = useState(0);
+  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
   const itemsPerPage = 4;
 
   // --- Audio states ---
@@ -38,6 +40,7 @@ export default function HomeContent() {
   const [currentAudioIndex, setCurrentAudioIndex] = useState(-1);
   const [audioElement, setAudioElement] = useState(null);
   const [showAudioControls, setShowAudioControls] = useState(false);
+  const [volume, setVolume] = useState(1); // Volume state (0 to 1)
   const newsItemRefs = useRef([]);
 
   // Lấy giá trị voice từ localStorage
@@ -55,17 +58,18 @@ export default function HomeContent() {
           name: localStorage.getItem("username") || "",
           email: localStorage.getItem("email") || "",
           userId: localStorage.getItem("userId") || "",
-          token: localStorage.getItem("accessToken") || "",
         };
 
-        if (!userData.userId || !userData.token) {
+        if (!userData.userId) {
           navigate("/login");
         } else {
-          // Fetch topics and news
+          setIsLoading(true); // Bắt đầu loading
           await Promise.all([fetchTopics(), fetchLatestNews()]);
+          setIsLoading(false); // Kết thúc loading
         }
       } catch (error) {
         console.error("Lỗi khi kiểm tra người dùng:", error);
+        setIsLoading(false);
         navigate("/login");
       }
     };
@@ -77,7 +81,6 @@ export default function HomeContent() {
   const fetchTopics = async () => {
     try {
       const data = await fetchWithAuth("/topics/suggest");
-
       console.log('Topics API response:', data);
 
       if (data && Array.isArray(data.data)) {
@@ -108,8 +111,7 @@ export default function HomeContent() {
         favorite: false,
       });
 
-      const data = await fetchWithAuth(`/articles?${params.toString()}`); // Bỏ headers: { lang: 'en' }
-
+      const data = await fetchWithAuth(`/articles?${params.toString()}`);
       const articles = data.data.data;
       if (articles && Array.isArray(articles) && articles.length > 0) {
         const bigNews = {
@@ -160,12 +162,6 @@ export default function HomeContent() {
   // --- Handle topic click ---
   const handleTopicClick = async (topicId) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
       const selectedTopic = topics.find((topic) => topic.id === topicId);
       if (selectedTopic) {
         localStorage.setItem("topic_title", selectedTopic.title);
@@ -211,10 +207,10 @@ export default function HomeContent() {
         setIsPaused(true);
       }
     } else {
-      stopCurrentAudio(false); // Keep controls visible
+      stopCurrentAudio(false);
       if (latestNews.big?.audioUrl) {
         setIsPlayingList(true);
-        setCurrentAudioIndex(0); // Start with big news
+        setCurrentAudioIndex(0);
         setShowAudioControls(true);
       } else {
         console.warn("No audio available for the first article.");
@@ -226,25 +222,33 @@ export default function HomeContent() {
     if (isPlayingList) {
       const totalItems = (latestNews.big ? 1 : 0) + latestNews.small.length;
       if (currentAudioIndex < totalItems - 1) {
-        stopCurrentAudio(false); // Keep controls visible
+        stopCurrentAudio(false);
         setIsPlayingList(true);
         setCurrentAudioIndex(currentAudioIndex + 1);
       } else {
-        stopCurrentAudio(true); // Reset controls when no more items
+        stopCurrentAudio(true);
       }
     }
   };
 
   const handlePrevious = () => {
     if (isPlayingList && currentAudioIndex > 0) {
-      stopCurrentAudio(false); // Keep controls visible
+      stopCurrentAudio(false);
       setIsPlayingList(true);
       setCurrentAudioIndex(currentAudioIndex - 1);
     }
   };
 
   const handleStop = () => {
-    stopCurrentAudio(true); // Reset controls
+    stopCurrentAudio(true);
+  };
+
+  const handleVolumeChange = (event) => {
+    const newVolume = event.target.value;
+    setVolume(newVolume);
+    if (audioElement) {
+      audioElement.volume = newVolume; // Cập nhật volume trực tiếp
+    }
   };
 
   // --- Audio playback logic ---
@@ -252,12 +256,13 @@ export default function HomeContent() {
     if (isPlayingList && !isPaused && currentAudioIndex >= 0) {
       const allNews = latestNews.big ? [latestNews.big, ...latestNews.small] : latestNews.small;
       if (currentAudioIndex >= allNews.length || !allNews[currentAudioIndex].audioUrl) {
-        stopCurrentAudio(true); // Reset controls if no audio
+        stopCurrentAudio(true);
         return;
       }
 
       const audioUrl = allNews[currentAudioIndex].audioUrl;
       const audio = new Audio(audioUrl);
+      audio.volume = volume; // Set initial volume
       setAudioElement(audio);
 
       audio.play().catch((err) => console.error("Audio play error:", err));
@@ -266,7 +271,7 @@ export default function HomeContent() {
         if (currentAudioIndex < allNews.length - 1) {
           setCurrentAudioIndex(currentAudioIndex + 1);
         } else {
-          stopCurrentAudio(true); // Reset controls when playback ends
+          stopCurrentAudio(true);
         }
       };
 
@@ -275,7 +280,7 @@ export default function HomeContent() {
         audio.src = "";
       };
     }
-  }, [currentAudioIndex, isPlayingList, isPaused, latestNews]);
+  }, [currentAudioIndex, isPlayingList, isPaused, latestNews]); // Loại bỏ volume khỏi dependencies
 
   // --- Scroll to currently playing article ---
   useEffect(() => {
@@ -316,22 +321,29 @@ export default function HomeContent() {
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-6 px-2 sm:px-4 md:px-6 lg:px-10 rounded-lg shadow">
-          {displayedTopics.map((topic) => (
-            <div
-              key={topic.id}
-              className="flex flex-col items-center py-4 rounded-md bg-gray cursor-pointer"
-              onClick={() => handleTopicClick(topic.id)}
-            >
-              <span className="text-lg font-bold text-center mb-4">{topic.title}</span>
-              <div className="h-[20vh] w-[25vh]">
-                <img
-                  src={topic.imgUrl}
-                  alt={topic.title}
-                  className="w-full h-full object-cover rounded-md"
-                />
+          {isLoading ? (
+            Array(4).fill().map((_, idx) => (
+              <SkeletonTopicCard key={idx} />
+            ))
+          ) : (
+            displayedTopics.map((topic) => (
+              <div
+                key={topic.id}
+                className="flex flex-col justify-between items-center py-6 rounded-md bg-gray cursor-pointer"
+                onClick={() => handleTopicClick(topic.id)}
+              >
+                <span className="text-lg font-bold text-center mb-4">{topic.title}</span>
+                <div className="lg:h-[15vh] lg:w-[20vh] xl:h-[18vh] xl:w-[23vh] md:h-[15vh] md:w-[20vh] ">
+                  <img
+                    src={topic.imgUrl}
+                    alt={topic.title}
+                    loading="lazy"
+                    className="w-full h-full object-cover rounded-md"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
@@ -355,6 +367,15 @@ export default function HomeContent() {
               </button>
             ) : (
               <>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value={volume}
+                  onChange={handleVolumeChange}
+                  className="w-24"
+                />
                 <button
                   onClick={handlePrevious}
                   disabled={currentAudioIndex === 0}
@@ -386,7 +407,18 @@ export default function HomeContent() {
           </div>
         </div>
 
-        {latestNews.big && (
+        {isLoading ? (
+          <div className="flex flex-col rounded-lg shadow py-3 h-full lg:p-4 bg-gray">
+            {/* Big News Skeleton */}
+            <SkeletonNewsCard isBig={true} />
+            {/* Small News Skeleton */}
+            <div className="grid grid-cols-1 mt-7 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 h-auto">
+              {Array(4).fill().map((_, idx) => (
+                <SkeletonNewsCard key={idx} isBig={false} />
+              ))}
+            </div>
+          </div>
+        ) : latestNews.big ? (
           <div className="flex flex-col rounded-lg shadow py-3 h-full lg:p-4 bg-gray">
             {/* Big News */}
             <div
@@ -396,11 +428,12 @@ export default function HomeContent() {
               }`}
               onClick={() => navigate(`/papers/${latestNews.big.id}`)}
             >
-              <Card className="flex items-center gap-4 w-full">
+              <Card className="flex items-center gap-4 w-full p-4">
                 <img
                   src={latestNews.big.imgUrl}
                   alt={latestNews.big.title}
-                  className="w-[26vh] h-[25vh] object-cover rounded"
+                  loading="lazy"
+                  className="w-[32vh] h-[25vh] lg:w-[25vh] lg:h-[20vh] object-cover rounded"
                 />
                 <CardContent className="p-0 w-full">
                   <Typography variant="h6" className="font-semibold mb-2">
@@ -430,7 +463,8 @@ export default function HomeContent() {
                   <img
                     src={news.imgUrl}
                     alt={news.title}
-                    className="w-full md:h-[20vh] xl:h-[25vh] rounded-lg object-cover"
+                    loading="lazy"
+                    className="w-full md:h-[20vh] lg:h-[18vh] rounded-lg object-cover"
                   />
                   <div className="p-2">
                     <h4 className="text-md font-semibold">{news.title}</h4>
@@ -440,6 +474,8 @@ export default function HomeContent() {
               ))}
             </div>
           </div>
+        ) : (
+          <div className="text-center text-gray-600">Không có tin tức mới.</div>
         )}
       </section>
     </div>

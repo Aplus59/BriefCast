@@ -18,7 +18,7 @@ const formatDate = (datetime) => {
 export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, favorite, onFavoriteClick, audioUrl, isPlaying, onPlayAudio }) {
   return (
     <Card className="flex items-center gap-4 paper-list rounded-lg">
-      <img src={imageUrl} alt="news" className="w-[26vh] h-[25vh] object-cover rounded" />
+      <img src={imageUrl} loading="lazy" alt="news" className="w-[26vh] h-[25vh] object-cover rounded" />
       <CardContent className="p-0 w-full">
         <Typography variant="h6" className="mb-2 title">
           {title}

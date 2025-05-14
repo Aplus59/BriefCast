@@ -1,26 +1,33 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import MainLayout from '../components/layout/MainLayout';
-import Login from '../pages/Auth/Login';
-import Register from '../pages/Auth/Register';
-import ForgotPassword from '../pages/Auth/ForgotPassword';
-import HomePage from '../pages/HomePage';
-import PaperList from '../pages/PaperList';
-import PaperDetail from '../pages/PaperDetail';
-import Profile from '../pages/Profile';
+import Loading from '../components/common/Loading'; // Component loading fallback (tạo mới)
+
+// Lazy load các trang
+const Login = lazy(() => import('../pages/Auth/Login'));
+const Register = lazy(() => import('../pages/Auth/Register'));
+const ForgotPassword = lazy(() => import('../pages/Auth/ForgotPassword'));
+const HomePage = lazy(() => import('../pages/HomePage'));
+const PaperList = lazy(() => import('../pages/PaperList'));
+const PaperDetail = lazy(() => import('../pages/PaperDetail'));
+const Profile = lazy(() => import('../pages/Profile'));
 
 const AppRoutes = () => (
   <BrowserRouter>
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/papers" element={<PaperList />} />
-        <Route path="/papers/:id" element={<PaperDetail />} />
-        <Route path="/profile" element={<Profile />} />
-      </Route>
-    </Routes>
+    <Suspense fallback={<Loading />}>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/papers" element={<PaperList />} />
+          <Route path="/papers/:id" element={<PaperDetail />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Suspense>
   </BrowserRouter>
 );
 

@@ -35,6 +35,30 @@ const validatePassword = (password) => {
   return null;
 };
 
+// Skeleton cho Profile
+const SkeletonProfile = () => (
+  <div className="flex flex-col md:flex-row gap-10 w-full max-w-5xl animate-pulse">
+    {/* Left side - Profile Photo */}
+    <div className="flex flex-col items-center gap-4 rounded-lg shadow p-8">
+      <div className="w-[150px] h-[150px] bg-gray-300 rounded-full"></div>
+      <div className="h-4 bg-gray-300 rounded w-40"></div>
+    </div>
+    {/* Right side - Tabs */}
+    <div className="flex-1">
+      <div className="h-10 bg-gray-300 rounded mb-6"></div>
+      <div className="flex flex-col gap-6 min-h-[320px]">
+        <div className="h-14 bg-gray-300 rounded"></div>
+        <div className="h-14 bg-gray-300 rounded"></div>
+        <div className="h-14 bg-gray-300 rounded"></div>
+        <div className="flex gap-4 mt-4 justify-between">
+          <div className="h-10 bg-gray-300 rounded w-32"></div>
+          <div className="h-10 bg-gray-300 rounded w-32"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 export default function Profile() {
   const navigate = useNavigate();
   const [tabIndex, setTabIndex] = useState(0);
@@ -45,20 +69,20 @@ export default function Profile() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    defaultVoice: "Giọng nam", // Default voice
+    defaultVoice: "Giọng nam",
     password: "",
     newPassword: "",
     confirmNewPassword: "",
   });
   const [userID, setUserID] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
 
-  // Voice options
   const voiceOptions = ["Giọng nam", "Giọng nữ"];
 
-  // Load user data from localStorage
   useEffect(() => {
     const loadUserData = async () => {
       try {
+        setIsLoading(true); // Bắt đầu loading
         const userData = {
           name: localStorage.getItem("username") || "",
           email: localStorage.getItem("email") || "",
@@ -75,7 +99,6 @@ export default function Profile() {
         }));
         setProfilePhoto(userData.avatar || null);
 
-        // Fetch user data từ API
         const response = await fetchWithAuth("/users/me", {
           method: "GET",
         });
@@ -93,12 +116,14 @@ export default function Profile() {
       } catch (error) {
         console.error("Error fetching user data:", error);
         alert("Không thể tải thông tin người dùng: " + error.message);
+      } finally {
+        setIsLoading(false); // Kết thúc loading
       }
     };
 
     loadUserData();
   }, []);
-  
+
   const printCurlCommand = (url, config, method = "GET") => {
     const { headers, body } = config;
     const headerStrings = Object.entries(headers || {}).map(([key, value]) => `-H "${key}: ${value}"`);
@@ -211,7 +236,6 @@ export default function Profile() {
         return;
       }
 
-      // Validate new password
       const passwordError = validatePassword(formData.newPassword);
       if (passwordError) {
         alert(passwordError);
@@ -225,11 +249,6 @@ export default function Profile() {
       }
       const config = {
         method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
         body: JSON.stringify({
           new_password: formData.newPassword,
           old_password: formData.password,
@@ -292,185 +311,189 @@ export default function Profile() {
 
   return (
     <div className="flex justify-center items-start p-6 mt-20 lg:px-28">
-      <div className="flex flex-col md:flex-row gap-10 w-full max-w-5xl">
-        {/* Left side - Profile Photo */}
-        <div className="flex flex-col items-center gap-4 rounded-lg shadow p-8">
-          <div className="relative">
-            <Avatar
-              src={profilePhoto}
-              alt="Profile"
-              sx={{ width: 150, height: 150 }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white flex justify-center items-center h-10">
-              <label className="cursor-pointer flex items-center gap-1">
-                <UploadFile fontSize="small" className="profile" />
-                <span>Upload Photo</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handlePhotoUpload}
-                />
-              </label>
+      {isLoading ? (
+        <SkeletonProfile />
+      ) : (
+        <div className="flex flex-col md:flex-row gap-10 w-full max-w-5xl">
+          {/* Left side - Profile Photo */}
+          <div className="flex flex-col items-center gap-4 rounded-lg shadow p-8">
+            <div className="relative">
+              <Avatar
+                src={profilePhoto}
+                alt="Profile"
+                sx={{ width: 150, height: 150 }}
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white flex justify-center items-center h-10">
+                <label className="cursor-pointer flex items-center gap-1">
+                  <UploadFile fontSize="small" className="profile" />
+                  <span>Upload Photo</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </label>
+              </div>
             </div>
+            <p className="text-gray-500 text-sm text-center">
+              Ảnh phải dưới 1MB và tỷ lệ ảnh cần là 1:1
+            </p>
           </div>
-          <p className="text-gray-500 text-sm text-center">
-            Ảnh phải dưới 1MB và tỷ lệ ảnh cần là 1:1
-          </p>
-        </div>
 
-        {/* Right side - Tabs */}
-        <div className="flex-1">
-          <Tabs
-            value={tabIndex}
-            onChange={(e, newValue) => setTabIndex(newValue)}
-            textColor="primary"
-            indicatorColor="primary"
-            className="mb-6"
-          >
-            <Tab label="Thông tin cá nhân" />
-            <Tab label="Đổi mật khẩu" />
-          </Tabs>
+          {/* Right side - Tabs */}
+          <div className="flex-1">
+            <Tabs
+              value={tabIndex}
+              onChange={(e, newValue) => setTabIndex(newValue)}
+              textColor="primary"
+              indicatorColor="primary"
+              className="mb-6"
+            >
+              <Tab label="Thông tin cá nhân" />
+              <Tab label="Đổi mật khẩu" />
+            </Tabs>
 
-          {tabIndex === 0 && (
-            <div className="flex flex-col gap-6 min-h-[320px]">
-              <TextField
-                label="Họ và tên"
-                name="name"
-                variant="outlined"
-                fullWidth
-                value={formData.name}
-                onChange={handleChange}
-              />
-              <TextField
-                label="Email"
-                name="email"
-                variant="outlined"
-                fullWidth
-                value={formData.email}
-                onChange={handleChange}
-              />
-              <FormControl fullWidth variant="outlined">
-                <InputLabel>Giọng mặc định</InputLabel>
-                <Select
-                  label="Giọng mặc định"
-                  name="defaultVoice"
-                  value={formData.defaultVoice}
+            {tabIndex === 0 && (
+              <div className="flex flex-col gap-6 min-h-[320px]">
+                <TextField
+                  label="Họ và tên"
+                  name="name"
+                  variant="outlined"
+                  fullWidth
+                  value={formData.name}
                   onChange={handleChange}
-                >
-                  {voiceOptions.map((voice) => (
-                    <MenuItem key={voice} value={voice}>
-                      {voice}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <div className="flex gap-4 mt-4 justify-between">
+                />
+                <TextField
+                  label="Email"
+                  name="email"
+                  variant="outlined"
+                  fullWidth
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel>Giọng mặc định</InputLabel>
+                  <Select
+                    label="Giọng mặc định"
+                    name="defaultVoice"
+                    value={formData.defaultVoice}
+                    onChange={handleChange}
+                  >
+                    {voiceOptions.map((voice) => (
+                      <MenuItem key={voice} value={voice}>
+                        {voice}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <div className="flex gap-4 mt-4 justify-between">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    className="bg-orange-500 hover:bg-orange-600"
+                    onClick={handleSaveProfile}
+                  >
+                    Lưu Thay Đổi
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    className="hover:bg-red-700"
+                    onClick={handleLogout}
+                  >
+                    Đăng Xuất
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {tabIndex === 1 && (
+              <form autoComplete="off" className="flex flex-col gap-6 min-h-[320px]">
+                <input
+                  type="password"
+                  style={{ display: "none" }}
+                  autoComplete="new-password"
+                />
+                <TextField
+                  fullWidth
+                  label="Mật khẩu hiện tại"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={handleChange}
+                  variant="outlined"
+                  placeholder="Mật khẩu hiện tại"
+                  autoComplete="off"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={handleTogglePassword} edge="end">
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Mật khẩu mới"
+                  name="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={formData.newPassword}
+                  onChange={handleChange}
+                  variant="outlined"
+                  placeholder="Mật khẩu mới"
+                  autoComplete="new-password"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={handleToggleNewPassword} edge="end">
+                            {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
+                <TextField
+                  fullWidth
+                  label="Nhập lại mật khẩu mới"
+                  name="confirmNewPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={formData.confirmNewPassword}
+                  onChange={handleChange}
+                  variant="outlined"
+                  placeholder="Nhập lại mật khẩu mới"
+                  autoComplete="new-password"
+                  slotProps={{
+                    input: {
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={handleToggleConfirmPassword} edge="end">
+                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    },
+                  }}
+                />
                 <Button
                   variant="contained"
                   color="primary"
-                  className="bg-orange-500 hover:bg-orange-600"
-                  onClick={handleSaveProfile}
+                  className="mt-4 bg-orange-500 hover:bg-orange-600"
+                  onClick={handleChangePassword}
                 >
                   Lưu Thay Đổi
                 </Button>
-                <Button
-                  variant="contained"
-                  color="error"
-                  className="hover:bg-red-700"
-                  onClick={handleLogout}
-                >
-                  Đăng Xuất
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {tabIndex === 1 && (
-            <form autoComplete="off" className="flex flex-col gap-6 min-h-[320px]">
-              <input
-                type="password"
-                style={{ display: "none" }}
-                autoComplete="new-password"
-              />
-              <TextField
-                fullWidth
-                label="Mật khẩu hiện tại"
-                name="password"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                variant="outlined"
-                placeholder="Mật khẩu hiện tại"
-                autoComplete="off"
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleTogglePassword} edge="end">
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Mật khẩu mới"
-                name="newPassword"
-                type={showNewPassword ? "text" : "password"}
-                value={formData.newPassword}
-                onChange={handleChange}
-                variant="outlined"
-                placeholder="Mật khẩu mới"
-                autoComplete="new-password"
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleToggleNewPassword} edge="end">
-                          {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <TextField
-                fullWidth
-                label="Nhập lại mật khẩu mới"
-                name="confirmNewPassword"
-                type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmNewPassword}
-                onChange={handleChange}
-                variant="outlined"
-                placeholder="Nhập lại mật khẩu mới"
-                autoComplete="new-password"
-                slotProps={{
-                  input: {
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleToggleConfirmPassword} edge="end">
-                          {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <Button
-                variant="contained"
-                color="primary"
-                className="mt-4 bg-orange-500 hover:bg-orange-600"
-                onClick={handleChangePassword}
-              >
-                Lưu Thay Đổi
-              </Button>
-            </form>
-          )}
+              </form>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

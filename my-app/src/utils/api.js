@@ -55,6 +55,7 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
 
 // Hàm làm mới access_token
 const refreshAccessToken = async () => {
+  console.log("rftoken")
   const refreshToken = localStorage.getItem("refreshToken");
   if (!refreshToken) {
     localStorage.clear();

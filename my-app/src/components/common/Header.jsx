@@ -63,7 +63,7 @@ export default function Header() {
     <header className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white shadow-sm space-y-2 sm:space-y-0">
       <div className="flex items-center space-x-2 cursor-pointer" onClick={handleLogoClick}>
         <NewspaperIcon />
-        <span className="text-2xl font-bold">E-new</span>
+        <span className="text-2xl font-bold">Briefly</span>
       </div>
 
       <div className="w-full sm:w-auto flex-1 sm:mx-8 flex flex-col sm:flex-row items-center justify-start space-y-2 sm:space-y-0 sm:space-x-4">
