@@ -5,7 +5,10 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");
   const headers = {
     "Content-Type": "application/json",
-    "Accept": "application/json",
+    "Accept": "application/json", 
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "User-Agent": "Swagger-Codegen/1.0.0/go",
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
     ...options.headers,
