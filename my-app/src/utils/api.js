@@ -1,10 +1,10 @@
 // src/utils/api.js
-const API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
+let API_BASE_URL = import.meta.env.VITE_API_URL || "/api/v1"; // Dùng /api/v1 trong dev (proxy bởi Vite)
 // Hàm gọi API với access_token
-export const fetchWithAuth = async (endpoint, options = {}) => {
-  const accessToken = localStorage.getItem("accessToken");
+export let fetchWithAuth = async (endpoint, options = {}) => {
+  let accessToken = localStorage.getItem("accessToken");
 
-  const headers = {
+  let headers = {
     "Content-Type": "application/json",
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
   };
@@ -14,13 +14,13 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
       console.log(">>> Request body:", options.body);
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    let response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers,
       mode: 'cors',
       credentials: 'include', // nếu backend yêu cầu cookie/session
     });
 
-    const contentType = response.headers.get("content-type");
+    let contentType = response.headers.get("content-type");
     let data;
 
     if (contentType && contentType.includes("application/json")) {
@@ -40,9 +40,9 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
 
 
 // Hàm làm mới access_token
-const refreshAccessToken = async () => {
+let refreshAccessToken = async () => {
   console.log("rftoken")
-  const refreshToken = localStorage.getItem("refreshToken");
+  let refreshToken = localStorage.getItem("refreshToken");
   if (!refreshToken) {
     localStorage.clear();
     window.location.href = "/login";
@@ -50,7 +50,7 @@ const refreshAccessToken = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/session/refresh`, {
+    let response = await fetch(`${API_BASE_URL}/session/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -60,7 +60,7 @@ const refreshAccessToken = async () => {
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
-    const contentType = response.headers.get("content-type");
+    let contentType = response.headers.get("content-type");
     let data;
     if (contentType && contentType.includes("application/json")) {
       data = await response.json();
