@@ -5,10 +5,8 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");
 
   const headers = {
-    "Content-Type": "application/json", 
-    "Accept": "application/json",
+    "Content-Type": "application/json",
     ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
-    ...options.headers, // cho phép override
   };
 
   try {
@@ -17,7 +15,6 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-      ...options,
       headers,
       mode: 'cors',
       credentials: 'include', // nếu backend yêu cầu cookie/session
