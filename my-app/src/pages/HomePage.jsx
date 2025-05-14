@@ -433,7 +433,7 @@ export default function HomeContent() {
                   src={latestNews.big.imgUrl}
                   alt={latestNews.big.title}
                   loading="lazy"
-                  className="w-[32vh] h-[25vh] lg:w-[25vh] lg:h-[20vh] object-cover rounded"
+                  className="w-[32vh] h-[25vh] lg:w-[25vh] lg:h-[20vh] xl:w-[28vh] xl:h-[23vh] object-cover rounded"
                 />
                 <CardContent className="p-0 w-full">
                   <Typography variant="h6" className="font-semibold mb-2">
@@ -464,7 +464,7 @@ export default function HomeContent() {
                     src={news.imgUrl}
                     alt={news.title}
                     loading="lazy"
-                    className="w-full md:h-[20vh] lg:h-[18vh] rounded-lg object-cover"
+                    className="w-full md:h-[20vh] lg:h-[18vh] xl:h-[23vh] rounded-lg object-cover"
                   />
                   <div className="p-2">
                     <h4 className="text-md font-semibold">{news.title}</h4>
