@@ -5,13 +5,11 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
   const accessToken = localStorage.getItem("accessToken");
   const headers = {
     "Content-Type": "application/json",
-    "Accept": "application/json", 
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS, PUT, DELETE, PATCH",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "User-Agent": "Swagger-Codegen/1.0.0/go",
-    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    "Accept": "application/json",
+    // Remove CORS headers since they should be set by the server, not the client
+    // These headers are ignored by browsers when set on the client side for security reasons
     ...options.headers,
+    ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
   };
 
   try {
@@ -22,6 +20,8 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
+      // Add credentials option to handle CORS properly
+      credentials: 'include',
     });
 
     const contentType = response.headers.get("content-type");
@@ -72,8 +72,8 @@ const refreshAccessToken = async () => {
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "Swagger-Codegen/1.0.0/go",
       },
+      credentials: 'include',
       body: JSON.stringify({ refresh_token: refreshToken }),
     });
 
