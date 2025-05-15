@@ -338,6 +338,7 @@ export default function HomeContent() {
                     src={topic.imgUrl}
                     alt={topic.title}
                     loading="lazy"
+                    referrerPolicy="no-referrer"
                     className="w-full h-full object-cover rounded-md"
                   />
                 </div>
@@ -430,6 +431,7 @@ export default function HomeContent() {
             >
               <Card className="flex items-center gap-4 w-full p-4">
                 <img
+                  referrerPolicy="no-referrer"
                   src={latestNews.big.imgUrl}
                   alt={latestNews.big.title}
                   loading="lazy"
@@ -461,6 +463,7 @@ export default function HomeContent() {
                   onClick={() => navigate(`/papers/${news.id}`)}
                 >
                   <img
+                    referrerPolicy="no-referrer"
                     src={news.imgUrl}
                     alt={news.title}
                     loading="lazy"
