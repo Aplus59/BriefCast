@@ -338,6 +338,7 @@ function PaperDetail() {
         >
           <div className="flex flex-colpv md:flex-row md:space-x-6">
             <img
+              referrerPolicy="no-referrer"
               loading="lazy"
               src={article.imageUrl}
               alt={article.title}
@@ -386,6 +387,7 @@ function PaperDetail() {
                 onClick={() => navigate(`/papers/${item.id}`)}
               >
                 <img
+                  referrerPolicy="no-referrer"
                   loading="lazy"
                   src={item.imageUrl}
                   alt={item.title}
