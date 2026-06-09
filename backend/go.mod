@@ -3,5 +3,5 @@ module briefcast-backend
 go 1.22
 
 require (
-	// Add required packages like gin-gonic, mongo-driver, redis here later
+	go.mongodb.org/mongo-driver v1.15.0
 )
