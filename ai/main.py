@@ -1,7 +1,16 @@
 from fastapi import FastAPI
 import uvicorn
+from contextlib import asynccontextmanager
+from ingestion.scheduler import start_scheduler
 
-app = FastAPI(title="BriefCast AI Service")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start background scheduler
+    start_scheduler()
+    yield
+    # Shutdown: Add scheduler shutdown logic here if needed
+
+app = FastAPI(title="BriefCast AI Service", lifespan=lifespan)
 
 @app.get("/health")
 def health_check():
