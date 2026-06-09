@@ -6,6 +6,7 @@ COPY go.mod ./
 RUN go mod download
 
 COPY . .
+RUN go mod tidy
 RUN go build -o /app/api-server ./cmd/api
 
 FROM alpine:latest

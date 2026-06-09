@@ -8,4 +8,4 @@ articles_collection = db["articles"]
 
 # Create indexes
 articles_collection.create_index("url", unique=True)
-articles_collection.create_index("published_at", order=-1)
+articles_collection.create_index([("published_at", -1)])
