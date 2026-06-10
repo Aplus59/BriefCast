@@ -1,12 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-
-const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
-const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+import { fetchWithAuth } from "../utils/api";
 
 export default function HomeContent() {
   const navigate = useNavigate();
   const [language, setLanguage] = useState(localStorage.getItem("language") || "en");
+  const [topics, setTopics] = useState([]);
 
   // Listen for language changes from Header
   useEffect(() => {
@@ -17,7 +16,35 @@ export default function HomeContent() {
     return () => window.removeEventListener("languageChange", handleLangChange);
   }, []);
 
-  const topics = language === "fr" ? TOPICS_FR : TOPICS_EN;
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        console.log("Fetching topics for lang:", language);
+        const response = await fetchWithAuth(`/topics?lang=${language}`);
+        console.log("Topics response:", response);
+        if (Array.isArray(response)) {
+          const decoded = response.map((t) => {
+            try {
+              return decodeURIComponent(t);
+            } catch (e) {
+              return t;
+            }
+          });
+          setTopics(decoded);
+        } else {
+          const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
+          const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+          setTopics(language === "fr" ? TOPICS_FR : TOPICS_EN);
+        }
+      } catch (error) {
+        console.error("Failed to fetch topics:", error);
+        const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
+        const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+        setTopics(language === "fr" ? TOPICS_FR : TOPICS_EN);
+      }
+    };
+    fetchTopics();
+  }, [language]);
 
   const handleTopicClick = (topic) => {
     localStorage.setItem("topic_title", topic);

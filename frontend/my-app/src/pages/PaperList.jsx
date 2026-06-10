@@ -42,10 +42,10 @@ const SkeletonNewsCard = () => (
       <div className="w-full sm:w-40 h-40 bg-gray-300 rounded"></div>
       <div className="flex-1">
         <div className="h-6 bg-gray-300 rounded w-3/4 mb-2"></div>
-        <ul className="list-disc pl-5 space-y-2">
-          <li><div className="h-4 bg-gray-300 rounded w-full"></div></li>
-          <li><div className="h-4 bg-gray-300 rounded w-5/6"></div></li>
-        </ul>
+        <div className="space-y-2 mb-3">
+          <div className="h-4 bg-gray-300 rounded w-full"></div>
+          <div className="h-4 bg-gray-300 rounded w-5/6"></div>
+        </div>
         <div className="flex flex-wrap gap-2 mt-2">
           <div className="h-4 bg-gray-300 rounded w-24"></div>
           <div className="h-4 bg-gray-300 rounded w-20"></div>
@@ -58,7 +58,7 @@ const SkeletonNewsCard = () => (
 
 function PaperList() {
   const navigate = useNavigate();
-  const itemsPerPage = 5;
+  const itemsPerPage = 6;
   const [newsItems, setNewsItems] = useState(defaultNewsItems);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -88,10 +88,37 @@ function PaperList() {
   const topicParam = query.get("topic");
   const selectedTopics = topicParam ? topicParam.split(",") : [];
 
-  // Topics vary by language
-  const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
-  const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
-  const topics = language === "fr" ? TOPICS_FR : TOPICS_EN;
+  const [topics, setTopics] = useState([]);
+
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        console.log("Fetching topics for lang:", language);
+        const response = await fetchWithAuth(`/topics?lang=${language}`);
+        console.log("Topics response:", response);
+        if (Array.isArray(response)) {
+          const decoded = response.map((t) => {
+            try {
+              return decodeURIComponent(t);
+            } catch (e) {
+              return t;
+            }
+          });
+          setTopics(decoded);
+        } else {
+          const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
+          const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+          setTopics(language === "fr" ? TOPICS_FR : TOPICS_EN);
+        }
+      } catch (error) {
+        console.error("Failed to fetch topics:", error);
+        const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
+        const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+        setTopics(language === "fr" ? TOPICS_FR : TOPICS_EN);
+      }
+    };
+    fetchTopics();
+  }, [language]);
 
   const handleScrollModeToggle = () => {
     const newMode = scrollMode === "autoscroll" ? "noscroll" : "autoscroll";
@@ -145,6 +172,8 @@ function PaperList() {
         dataArray = response;
       } else if (response && response.data && Array.isArray(response.data.data)) {
         dataArray = response.data.data;
+      } else if (response && Array.isArray(response.data)) {
+        dataArray = response.data;
       }
 
       if (dataArray.length > 0) {
@@ -154,17 +183,27 @@ function PaperList() {
               ? item.male_audio?.url || null
               : item.female_audio?.url || null);
 
+          let topicVal = (typeof item.topic === 'object' ? item.topic?.name : item.topic) || "General";
+          try {
+            topicVal = decodeURIComponent(topicVal);
+          } catch (e) {}
+          if (topicVal.toLowerCase() === "vidéo" || topicVal.toLowerCase() === "video") {
+            topicVal = "video";
+          }
+
           return {
             id: item.id || item._id || `fallback-${Math.random()}`,
             title: item.title || "Untitled",
-            content: item.summary ? [item.summary] : ["No summary available"],
+            content: item.summary 
+              ? item.summary.split('\n').map(s => s.replace(/^[-*•\s]+/, '').trim()).filter(s => s.length > 0)
+              : ["No summary available"],
             imageUrl:
               item.image_url || item.image ||
               "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
             linkPaper: item.url || "#",
             datetime: item.published_at || item.published_date || "N/A",
             source: item.source?.name || item.source || "Unknown",
-            topic: item.topic?.name || "General",
+            topic: topicVal,
             topicId: item.topic?.id || null,
             favorite: item.is_favorite || false,
             reliabilityScore: item.reliability_score || 0,
@@ -530,7 +569,7 @@ function PaperList() {
           </div>
         )}
       </div>
-      <div className="flex flex-col xl:max-w-5xl max-w-4xl w-full mb-4 gap-3">
+      <div className="flex flex-col max-w-5xl xl:max-w-7xl 2xl:max-w-[1600px] w-full mb-4 gap-3">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
           <div className="text-xl sm:text-2xl font-bold text-gray-800">
             {displayTitle}
@@ -584,39 +623,41 @@ function PaperList() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow max-w-4xl xl:max-w-5xl w-full px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        {isLoading ? (
-          Array(5).fill().map((_, idx) => (
-            <SkeletonNewsCard key={idx} />
-          ))
-        ) : newsItems.length > 0 ? (
-          newsItems.map((item, idx) => (
-            <div
-              key={item.id || idx}
-              ref={(el) => (newsItemRefs.current[idx] = el)}
-              className={`${
-                currentAudioIndex === idx && isPlayingList
-                  ? "border-2 border-red-500 rounded-lg"
-                  : ""
-              }`}
-            >
-              <NewsCard
-                {...item}
-                favorite={item.favorite}
-                onFavoriteClick={() => handleFavoriteClick(item.id)}
-                audioUrl={item.audioUrl}
-                isPlaying={singleAudioPlayingId === item.id}
-                onPlayAudio={() => handlePlaySingleAudio(item.id)}
-              />
+      <div className="bg-white rounded-xl shadow max-w-5xl xl:max-w-7xl 2xl:max-w-[1600px] w-full px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
+          {isLoading ? (
+            Array(5).fill().map((_, idx) => (
+              <SkeletonNewsCard key={idx} />
+            ))
+          ) : newsItems.length > 0 ? (
+            newsItems.map((item, idx) => (
+              <div
+                key={item.id || idx}
+                ref={(el) => (newsItemRefs.current[idx] = el)}
+                className={`${
+                  currentAudioIndex === idx && isPlayingList
+                    ? "border-2 border-red-500 rounded-lg"
+                    : ""
+                }`}
+              >
+                <NewsCard
+                  {...item}
+                  favorite={item.favorite}
+                  onFavoriteClick={() => handleFavoriteClick(item.id)}
+                  audioUrl={item.audioUrl}
+                  isPlaying={singleAudioPlayingId === item.id}
+                  onPlayAudio={() => handlePlaySingleAudio(item.id)}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-1 xl:col-span-2 text-center text-gray-600 font-medium py-8">
+              {favorite 
+                ? (language === "fr" ? "Vous n'avez pas encore d'articles favoris." : "You haven't liked any articles yet.") 
+                : (language === "fr" ? "Aucun article trouvé." : "No articles found.")}
             </div>
-          ))
-        ) : (
-          <div className="text-center text-gray-600 font-medium py-8">
-            {favorite 
-              ? (language === "fr" ? "Vous n'avez pas encore d'articles favoris." : "You haven't liked any articles yet.") 
-              : (language === "fr" ? "Aucun article trouvé." : "No articles found.")}
-          </div>
-        )}
+          )}
+        </div>
         <div className="flex justify-center pt-4">
           <Pagination
             count={totalPages}

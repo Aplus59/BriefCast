@@ -21,19 +21,19 @@ const formatDate = (datetime) => {
 export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, favorite, onFavoriteClick, audioUrl, isPlaying, onPlayAudio, reliabilityScore, topic, source }) {
   const language = localStorage.getItem("language") || "en";
   return (
-    <Card className="flex items-center gap-4 paper-list rounded-lg">
-      <img src={imageUrl} loading="lazy" alt="news" className="w-[26vh] h-[25vh] object-cover rounded" />
-      <CardContent className="p-0 w-full">
+    <Card className="flex flex-col sm:flex-row items-start gap-4 paper-list rounded-lg overflow-hidden h-full">
+      <img src={imageUrl} loading="lazy" alt="news" className="w-full sm:w-48 h-48 sm:h-full object-cover shrink-0" />
+      <CardContent className="p-4 w-full flex flex-col justify-between h-full">
         <Typography variant="h6" className="mb-2 title">
           {title}
         </Typography>
-        <ul className="list-disc pl-5 text-gray-600">
+        <div className="text-gray-600 space-y-2 mb-3">
           {content.map((item, index) => (
-            <li key={index}>
-              <Typography variant="body2">{item}</Typography>
-            </li>
+            <Typography key={index} variant="body2">
+              {item}
+            </Typography>
           ))}
-        </ul>
+        </div>
         <div className="flex flex-wrap gap-2 items-center mt-2 mb-1">
           {topic && (
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
@@ -46,7 +46,10 @@ export default function NewsCard({ title, content, imageUrl, linkPaper, datetime
             </span>
           )}
           {reliabilityScore !== undefined && reliabilityScore > 0 && (
-            <div className={`px-2 py-0.5 rounded text-white text-xs font-bold ${reliabilityScore >= 8 ? 'bg-green-500' : reliabilityScore >= 5 ? 'bg-yellow-500' : 'bg-red-500'}`}>
+            <div 
+              className="px-2 py-0.5 rounded text-white text-xs font-bold"
+              style={{ backgroundColor: reliabilityScore >= 8 ? '#22c55e' : reliabilityScore >= 5 ? '#eab308' : '#ef4444' }}
+            >
               ✓ {reliabilityScore}/10
             </div>
           )}
