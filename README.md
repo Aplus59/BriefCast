@@ -41,7 +41,7 @@ The AI processing worker (`worker.py`) runs every 5 minutes and applies the foll
 Built for a fast and clean user experience:
 - **Tech Stack**: React 19, Vite 6, Material UI 7.
 - **Routing**: `react-router-dom` for client-side navigation.
-- **Features**: Article browsing with language switching (EN/FR), topic filtering (multi-select), date range filtering, reliability score badges, audio playback (single article and playlist mode), and pagination with skeleton loading for a smooth experience.
+- **Features**: Semantic search with natural language queries, article browsing with language switching (EN/FR), topic filtering (multi-select), date range filtering, reliability score badges, audio playback (single article and playlist mode), and pagination with skeleton loading for a smooth experience.
 - **No authentication required**: The app is fully public — no login or sign-up needed.
 - **Serving**: Built as a static bundle and served via Nginx in Docker.
 
@@ -49,7 +49,7 @@ Built for a fast and clean user experience:
 A lightweight Go API server serving the frontend:
 - **Language**: Go 1.22 using the standard `net/http` library (no external web framework).
 - **Endpoints**:
-  - `GET /api/v1/articles` — Paginated article list with filtering by language, topic, date range, search query, and sort order.
+  - `GET /api/v1/articles` — Paginated article list with filtering by language, topic, date range, semantic search query (using OpenAI embeddings and Qdrant vector search), and sort order.
   - `GET /api/v1/articles/{id}` — Single article lookup across both EN and FR collections.
   - `GET /api/v1/topics` — Dynamically fetches distinct topics from MongoDB, normalizing URL-encoded characters.
 - **Database**: MongoDB for article storage, Redis for caching. Nginx acts as a reverse proxy.
@@ -60,19 +60,20 @@ All services are orchestrated with **Docker Compose**:
 - `backend` (Go API, port 8080)
 - `ai_service` (Python/FastAPI, port 8000)
 - `redis` (port 6379)
-- `qdrant` (port 6333)
-- MongoDB is expected to be provided externally via the `MONGO_URI` environment variable.
+- MongoDB and Qdrant are expected to be provided externally via their respective environment variables. (We use MongoDB Atlas and Qdrant Cloud).
 
 ## Environment Variables
 Key variables required in a `.env` file at the project root:
 | Variable | Description |
 |---|---|
 | `MONGO_URI` | MongoDB connection string |
-| `OPENAI_API_KEY` | OpenAI API key (for summarization, TTS, embeddings) |
+| `OPENAI_API_KEY` | OpenAI API key (for summarization, TTS, and semantic search embeddings) |
 | `SERPAPI_API_KEY` | SerpAPI key (for fact-checking) |
 | `GUARDIAN_API_KEY` | The Guardian API key (for English news ingestion via Guardian API) |
 | `GCS_BUCKET_NAME` | Google Cloud Storage bucket name (for audio files) |
 | `GOOGLE_APPLICATION_CREDENTIALS` | Path to GCS service account credentials JSON |
+| `QDRANT_URL` | Qdrant Cloud Cluster URL (for semantic search vector storage) |
+| `QDRANT_API_KEY` | Qdrant Cloud API key |
 | `MODE` | `continuous` (default, runs on hourly schedule) or `backfill` (fetches historical Guardian data) |
 | `BACKFILL_DAYS` | Number of past days to backfill when using `MODE=backfill` (default: 30) |
 
@@ -88,8 +89,3 @@ docker compose up --build
 
 The app will be available at **http://localhost:3000**.
 
-## Future Improvements
-- **Mobile App**: Launch a mobile application for on-the-go listening and reading.
-- **Multilingual Expansion**: Add support for more languages beyond English and French.
-- **Notifications**: Offer summaries via email, mobile notifications, or podcast-style playlists.
-- **User Feedback Loop**: Let users rate summaries and audio quality to continuously improve model outputs.
