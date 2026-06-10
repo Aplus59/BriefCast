@@ -2,7 +2,8 @@ import feedparser
 from datetime import datetime
 from bs4 import BeautifulSoup
 import requests
-from core.db import articles_collection
+from core.db import get_articles_collection
+from urllib.parse import urlparse
 
 RSS_FEEDS = [
     {"url": "https://feeds.bbci.co.uk/news/rss.xml", "source": "BBC News", "language": "en"},
@@ -15,6 +16,24 @@ def clean_html(html_content: str) -> str:
         return ""
     soup = BeautifulSoup(html_content, "html.parser")
     return soup.get_text(separator="\n", strip=True)
+
+def extract_topic_from_url(url: str) -> str:
+    if not url:
+        return "General"
+    parsed = urlparse(url)
+    path_parts = [p for p in parsed.path.split('/') if p]
+    if not path_parts:
+        return "General"
+    
+    # Common patterns:
+    # /news/technology/... -> technology
+    # /fr/sports/... -> sports
+    # /politique/article/... -> politique
+    for part in path_parts:
+        # Ignore common non-topic prefixes
+        if part.lower() not in ['news', 'en', 'fr', 'rss', 'article']:
+            return part.capitalize()
+    return "General"
 
 def fetch_full_text(url: str) -> str:
     # A simple scraper for full text if RSS only provides summary
@@ -38,7 +57,10 @@ def fetch_rss_feeds():
                 url = entry.link
                 title = entry.title
                 
-                if articles_collection.find_one({"url": url}):
+                lang = feed_info["language"]
+                collection = get_articles_collection(lang)
+                
+                if collection.find_one({"url": url}):
                     continue
                 
                 # Use published parsed if available
@@ -77,10 +99,11 @@ def fetch_rss_feeds():
                     "published_at": published_at,
                     "raw_content": raw_content,
                     "image_url": image_url,
+                    "topic": extract_topic_from_url(url),
                     "created_at": datetime.utcnow()
                 }
                 
-                articles_collection.insert_one(article_doc)
+                collection.insert_one(article_doc)
                 print(f"Saved RSS: {title}")
                 
         except Exception as e:

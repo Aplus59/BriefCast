@@ -2,7 +2,8 @@ import requests
 from datetime import datetime
 from bs4 import BeautifulSoup
 from core.config import settings
-from core.db import articles_collection
+from core.db import get_articles_collection
+from urllib.parse import urlparse
 
 GUARDIAN_API_URL = "https://content.guardianapis.com/search"
 
@@ -11,6 +12,18 @@ def clean_html(html_content: str) -> str:
         return ""
     soup = BeautifulSoup(html_content, "html.parser")
     return soup.get_text(separator="\n", strip=True)
+
+def extract_topic_from_url(url: str) -> str:
+    if not url:
+        return "General"
+    parsed = urlparse(url)
+    path_parts = [p for p in parsed.path.split('/') if p]
+    if not path_parts:
+        return "General"
+    # For The Guardian, section is usually the first path part after domain
+    if path_parts[0] in ['news', 'en', 'fr', 'rss'] and len(path_parts) > 1:
+        return path_parts[1].capitalize()
+    return path_parts[0].capitalize()
 
 def fetch_guardian_news():
     print("Fetching news from The Guardian API...")
@@ -43,9 +56,12 @@ def fetch_guardian_news():
             published_at = datetime.fromisoformat(published_at_str.replace('Z', '+00:00'))
             
             image_url = item.get("fields", {}).get("thumbnail", None)
+            topic = item.get("sectionName") or extract_topic_from_url(url)
+            
+            articles_en_collection = get_articles_collection("en")
             
             # Check if exists
-            if articles_collection.find_one({"url": url}):
+            if articles_en_collection.find_one({"url": url}):
                 continue
                 
             article_doc = {
@@ -56,10 +72,11 @@ def fetch_guardian_news():
                 "published_at": published_at,
                 "raw_content": raw_content,
                 "image_url": image_url,
+                "topic": topic,
                 "created_at": datetime.utcnow()
             }
             
-            articles_collection.insert_one(article_doc)
+            articles_en_collection.insert_one(article_doc)
             print(f"Saved: {title}")
             
     except Exception as e:

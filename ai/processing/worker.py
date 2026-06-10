@@ -1,5 +1,5 @@
 import time
-from core.db import articles_collection
+from core.db import articles_en_collection, articles_fr_collection
 from services.openai_service import summarize_article
 from services.fact_checking import fact_check_article
 from services.audio_service import generate_and_upload_audio
@@ -7,11 +7,15 @@ from services.embedding_service import generate_and_store_embedding
 
 def process_unsummarized_articles():
     print("Running AI Processing Worker...")
-    # Find articles that haven't been summarized yet
-    articles = articles_collection.find({"summary": {"$in": [None, ""]}}).limit(10)
     
-    for article in articles:
-        try:
+    collections = [articles_en_collection, articles_fr_collection]
+    
+    for collection in collections:
+        # Find articles that haven't been summarized yet
+        articles = collection.find({"summary": {"$in": [None, ""]}}).limit(5)
+        
+        for article in articles:
+            try:
             print(f"Processing: {article.get('title')}")
             article_id_str = str(article["_id"])
             language = article.get("language", "en")
@@ -38,7 +42,7 @@ def process_unsummarized_articles():
             embedding_id = generate_and_store_embedding(summary, metadata)
             
             # 5. Update DB
-            articles_collection.update_one(
+            collection.update_one(
                 {"_id": article["_id"]},
                 {"$set": {
                     "summary": summary,

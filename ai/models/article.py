@@ -10,6 +10,7 @@ class ArticleBase(BaseModel):
     published_at: datetime
     raw_content: str
     image_url: Optional[str] = None
+    topic: Optional[str] = None
     
 class ArticleInDB(ArticleBase):
     id: str = Field(alias="_id", default=None)

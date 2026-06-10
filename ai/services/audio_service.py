@@ -39,8 +39,8 @@ def generate_and_upload_audio(text: str, article_id: str, language: str) -> str:
         if bucket:
             blob = bucket.blob(f"audio/{file_name}")
             blob.upload_from_filename(local_path, content_type="audio/mpeg")
-            # Make public if bucket allows, otherwise get public URL
-            blob.make_public()
+            # Since the bucket uses Uniform Bucket-Level Access and is public, 
+            # we don't need to set ACL per object.
             audio_url = blob.public_url
         else:
             # Fallback for local testing if GCS is not set up
@@ -53,5 +53,7 @@ def generate_and_upload_audio(text: str, article_id: str, language: str) -> str:
             
         return audio_url
     except Exception as e:
+        import traceback
         print(f"Error generating/uploading audio: {e}")
+        traceback.print_exc()
         return ""
