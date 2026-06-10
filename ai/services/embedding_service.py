@@ -12,7 +12,10 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 COLLECTION_NAME = "articles_collection"
 
 try:
-    qdrant = QdrantClient(url=QDRANT_URL)
+    if settings.QDRANT_API_KEY:
+        qdrant = QdrantClient(url=QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+    else:
+        qdrant = QdrantClient(url=QDRANT_URL)
     # Check if collection exists, if not create it
     collections = [col.name for col in qdrant.get_collections().collections]
     if COLLECTION_NAME not in collections:

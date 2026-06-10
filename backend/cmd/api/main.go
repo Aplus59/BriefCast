@@ -151,6 +151,10 @@ func searchQdrant(vector []float32, lang string, limit int) ([]string, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
+	apiKey := os.Getenv("QDRANT_API_KEY")
+	if apiKey != "" {
+		req.Header.Set("Api-Key", apiKey)
+	}
 
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)

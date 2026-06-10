@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY", "")
     GUARDIAN_API_KEY: str = os.getenv("GUARDIAN_API_KEY", "test") # "test" works for limited non-commercial use
+    QDRANT_API_KEY: str = os.getenv("QDRANT_API_KEY", "")
     
     # Storage
     GCS_BUCKET_NAME: str = os.getenv("GCS_BUCKET_NAME", "briefcast-audio-bucket")
