@@ -14,11 +14,10 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_URI=${MONGO_URI}
       - REDIS_ADDR=redis:6379
       - AI_SERVICE_URL=http://ai_service:8000
     depends_on:
-      - mongodb
       - redis
 
   ai_service:
@@ -27,22 +26,22 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_URI=${MONGO_URI}
       - REDIS_ADDR=redis:6379
       - QDRANT_URL=http://qdrant:6333
       # Note: Set API keys in your local environment or an .env file
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SERPAPI_API_KEY=${SERPAPI_API_KEY}
     depends_on:
-      - mongodb
       - qdrant
+      - redis
 
-  mongodb:
-    image: mongo:6.0
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
+#  mongodb:
+#    image: mongo:6.0
+#    ports:
+#      - "27017:27017"
+#    volumes:
+#      - mongodb_data:/data/db
 
   redis:
     image: redis:7.0-alpine
@@ -57,5 +56,4 @@ services:
       - qdrant_data:/qdrant/storage
 
 volumes:
-  mongodb_data:
   qdrant_data:

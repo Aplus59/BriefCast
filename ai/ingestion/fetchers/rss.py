@@ -57,6 +57,18 @@ def fetch_rss_feeds():
                     if fetched_text:
                         raw_content = fetched_text
 
+                # Try to get image url
+                image_url = None
+                if hasattr(entry, 'media_content') and len(entry.media_content) > 0:
+                    image_url = entry.media_content[0].get('url')
+                elif hasattr(entry, 'media_thumbnail') and len(entry.media_thumbnail) > 0:
+                    image_url = entry.media_thumbnail[0].get('url')
+                elif hasattr(entry, 'links'):
+                    for link in entry.links:
+                        if link.get('type', '').startswith('image/'):
+                            image_url = link.get('href')
+                            break
+
                 article_doc = {
                     "title": title,
                     "url": url,
@@ -64,6 +76,7 @@ def fetch_rss_feeds():
                     "language": feed_info["language"],
                     "published_at": published_at,
                     "raw_content": raw_content,
+                    "image_url": image_url,
                     "created_at": datetime.utcnow()
                 }
                 

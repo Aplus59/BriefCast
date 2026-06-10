@@ -54,23 +54,12 @@ export default function HomeContent() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        const userData = {
-          name: localStorage.getItem("username") || "",
-          email: localStorage.getItem("email") || "",
-          userId: localStorage.getItem("userId") || "",
-        };
-
-        if (!userData.userId) {
-          navigate("/login");
-        } else {
-          setIsLoading(true); // Bắt đầu loading
-          await Promise.all([fetchTopics(), fetchLatestNews()]);
-          setIsLoading(false); // Kết thúc loading
-        }
+        setIsLoading(true); // Bắt đầu loading
+        await Promise.all([fetchTopics(), fetchLatestNews()]);
+        setIsLoading(false); // Kết thúc loading
       } catch (error) {
         console.error("Lỗi khi kiểm tra người dùng:", error);
         setIsLoading(false);
-        navigate("/login");
       }
     };
 
@@ -172,7 +161,6 @@ export default function HomeContent() {
       }
     } catch (error) {
       console.error("Lỗi khi xử lý click chủ đề:", error);
-      navigate("/login");
     }
   };
 

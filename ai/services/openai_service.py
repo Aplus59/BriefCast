@@ -8,7 +8,7 @@ def summarize_article(content: str, language: str) -> str:
     if not content or len(content) < 50:
         return ""
         
-    prompt = f"Please provide a concise, 3-4 sentence summary of the following news article. Write the summary in the original language of the article ({language}).\n\nArticle Content:\n{content[:5000]}" # Limit to 5000 chars to save tokens
+    prompt = f"Please provide a concise, 3-4 sentence summary of the following news article. Write the summary in the original language of the article ({language}).\n\nArticle Content:\n{content[:20000]}" # Limit to 20000 chars to save tokens
     
     try:
         response = client.chat.completions.create(

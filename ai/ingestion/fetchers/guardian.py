@@ -17,6 +17,7 @@ def fetch_guardian_news():
     params = {
         "api-key": settings.GUARDIAN_API_KEY,
         "show-blocks": "body",
+        "show-fields": "thumbnail",
         "page-size": 10,
         "order-by": "newest"
     }
@@ -41,6 +42,8 @@ def fetch_guardian_news():
             raw_content = clean_html(body_html)
             published_at = datetime.fromisoformat(published_at_str.replace('Z', '+00:00'))
             
+            image_url = item.get("fields", {}).get("thumbnail", None)
+            
             # Check if exists
             if articles_collection.find_one({"url": url}):
                 continue
@@ -52,6 +55,7 @@ def fetch_guardian_news():
                 "language": "en",
                 "published_at": published_at,
                 "raw_content": raw_content,
+                "image_url": image_url,
                 "created_at": datetime.utcnow()
             }
             

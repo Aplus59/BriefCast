@@ -9,6 +9,7 @@ class ArticleBase(BaseModel):
     language: str # 'en' or 'fr'
     published_at: datetime
     raw_content: str
+    image_url: Optional[str] = None
     
 class ArticleInDB(ArticleBase):
     id: str = Field(alias="_id", default=None)
