@@ -9,7 +9,6 @@ const Register = lazy(() => import('../pages/Auth/Register'));
 const ForgotPassword = lazy(() => import('../pages/Auth/ForgotPassword'));
 const HomePage = lazy(() => import('../pages/HomePage'));
 const PaperList = lazy(() => import('../pages/PaperList'));
-const PaperDetail = lazy(() => import('../pages/PaperDetail'));
 const Profile = lazy(() => import('../pages/Profile'));
 
 const AppRoutes = () => (
@@ -22,7 +21,6 @@ const AppRoutes = () => (
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/papers" element={<PaperList />} />
-          <Route path="/papers/:id" element={<PaperDetail />} />
           <Route path="/profile" element={<Profile />} />
         </Route>
         <Route path="*" element={<Navigate to="/" />} />

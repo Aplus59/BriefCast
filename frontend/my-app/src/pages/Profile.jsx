@@ -16,34 +16,12 @@ import { Visibility, VisibilityOff, UploadFile } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth } from "../utils/api";
 
-const validatePassword = (password) => {
-  if (password.length < 9) {
-    return "Mật khẩu phải có ít nhất 9 ký tự.";
-  }
-  if (!/[a-z]/.test(password)) {
-    return "Mật khẩu phải chứa ít nhất một chữ cái thường.";
-  }
-  if (!/[A-Z]/.test(password)) {
-    return "Mật khẩu phải chứa ít nhất một chữ cái in hoa.";
-  }
-  if (!/\d/.test(password)) {
-    return "Mật khẩu phải chứa ít nhất một chữ số.";
-  }
-  if (!/[!@#$%^&*]/.test(password)) {
-    return "Mật khẩu phải chứa ít nhất một ký tự đặc biệt (!@#$%^&*).";
-  }
-  return null;
-};
-
-// Skeleton cho Profile
 const SkeletonProfile = () => (
   <div className="flex flex-col md:flex-row gap-10 w-full max-w-5xl animate-pulse">
-    {/* Left side - Profile Photo */}
     <div className="flex flex-col items-center gap-4 rounded-lg shadow p-8">
       <div className="w-[150px] h-[150px] bg-gray-300 rounded-full"></div>
       <div className="h-4 bg-gray-300 rounded w-40"></div>
     </div>
-    {/* Right side - Tabs */}
     <div className="flex-1">
       <div className="h-10 bg-gray-300 rounded mb-6"></div>
       <div className="flex flex-col gap-6 min-h-[320px]">
@@ -61,33 +39,83 @@ const SkeletonProfile = () => (
 
 export default function Profile() {
   const navigate = useNavigate();
+  const language = localStorage.getItem("language") || "en";
   const [tabIndex, setTabIndex] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState(null);
+  
+  const voiceOptions = [
+    { value: "male", label: language === "fr" ? "Voix masculine" : "Male voice" },
+    { value: "female", label: language === "fr" ? "Voix féminine" : "Female voice" }
+  ];
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    defaultVoice: "Giọng nam",
+    defaultVoice: "male",
     password: "",
     newPassword: "",
     confirmNewPassword: "",
   });
   const [userID, setUserID] = useState(null);
-  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
+  const [isLoading, setIsLoading] = useState(true);
 
-  const voiceOptions = ["Giọng nam", "Giọng nữ"];
+  const t = {
+    passLength: language === "fr" ? "Le mot de passe doit comporter au moins 9 caractères." : "Password must be at least 9 characters.",
+    passLower: language === "fr" ? "Le mot de passe doit contenir au moins une lettre minuscule." : "Password must contain at least one lowercase letter.",
+    passUpper: language === "fr" ? "Le mot de passe doit contenir au moins une lettre majuscule." : "Password must contain at least one uppercase letter.",
+    passNumber: language === "fr" ? "Le mot de passe doit contenir au moins un chiffre." : "Password must contain at least one number.",
+    passSpecial: language === "fr" ? "Le mot de passe doit contenir au moins un caractère spécial (!@#$%^&*)." : "Password must contain at least one special character (!@#$%^&*).",
+    fetchError: language === "fr" ? "Impossible de charger les informations utilisateur :" : "Unable to load user information:",
+    imgSize: language === "fr" ? "L'image doit faire moins de 1Mo" : "Image must be under 1MB",
+    fillInfo: language === "fr" ? "Veuillez remplir le nom et l'email." : "Please fill in your name and email.",
+    notFoundError: language === "fr" ? "Utilisateur introuvable. Veuillez vous reconnecter." : "User not found. Please log in again.",
+    updateSuccess: language === "fr" ? "Profil mis à jour avec succès !" : "Profile updated successfully!",
+    emailInUse: language === "fr" ? "Email déjà utilisé." : "Email already in use.",
+    noPermission: language === "fr" ? "Vous n'avez pas la permission de mettre à jour ceci." : "You do not have permission to update this.",
+    updateError: language === "fr" ? "Mise à jour impossible :" : "Unable to update:",
+    fillPass: language === "fr" ? "Veuillez remplir tous les champs de mot de passe." : "Please fill in all password fields.",
+    passMismatch: language === "fr" ? "Le nouveau mot de passe et la confirmation ne correspondent pas." : "New password and confirmation do not match.",
+    passChangeSuccess: language === "fr" ? "Mot de passe modifié avec succès ! Déconnexion..." : "Password changed successfully! Logging out...",
+    wrongPass: language === "fr" ? "Le mot de passe actuel est incorrect." : "Current password is incorrect.",
+    invalidConfirm: language === "fr" ? "Le mot de passe de confirmation est invalide." : "Confirmation password is invalid.",
+    passChangeError: language === "fr" ? "Impossible de changer le mot de passe :" : "Unable to change password:",
+    logoutSuccess: language === "fr" ? "Déconnexion réussie !" : "Logout successful!",
+    logoutError: language === "fr" ? "Une erreur est survenue lors de la déconnexion :" : "An error occurred during logout:",
+    imgFormatReq: language === "fr" ? "L'image doit faire moins de 1Mo et avoir un ratio 1:1" : "Image must be under 1MB and have a 1:1 ratio",
+    tabInfo: language === "fr" ? "Informations personnelles" : "Personal Information",
+    tabPass: language === "fr" ? "Changer le mot de passe" : "Change Password",
+    fullName: language === "fr" ? "Nom complet" : "Full Name",
+    email: language === "fr" ? "Email" : "Email",
+    defaultVoiceLabel: language === "fr" ? "Voix par défaut" : "Default Voice",
+    saveChanges: language === "fr" ? "Enregistrer" : "Save Changes",
+    logoutBtn: language === "fr" ? "Se déconnecter" : "Log Out",
+    currentPass: language === "fr" ? "Mot de passe actuel" : "Current Password",
+    newPass: language === "fr" ? "Nouveau mot de passe" : "New Password",
+    confirmNewPass: language === "fr" ? "Confirmer le nouveau mot de passe" : "Confirm New Password",
+    uploadPhoto: language === "fr" ? "Télécharger une photo" : "Upload Photo",
+  };
+
+  const validatePassword = (password) => {
+    if (password.length < 9) return t.passLength;
+    if (!/[a-z]/.test(password)) return t.passLower;
+    if (!/[A-Z]/.test(password)) return t.passUpper;
+    if (!/\d/.test(password)) return t.passNumber;
+    if (!/[!@#$%^&*]/.test(password)) return t.passSpecial;
+    return null;
+  };
 
   useEffect(() => {
     const loadUserData = async () => {
       try {
-        setIsLoading(true); // Bắt đầu loading
+        setIsLoading(true);
         const userData = {
           name: localStorage.getItem("username") || "",
           email: localStorage.getItem("email") || "",
           avatar: localStorage.getItem("avatar") || "",
-          defaultVoice: localStorage.getItem("voice") || "Giọng nam",
+          defaultVoice: localStorage.getItem("voice") || "male",
           userId: localStorage.getItem("userId") || "",
         };
         setUserID(userData.userId);
@@ -103,42 +131,29 @@ export default function Profile() {
           method: "GET",
         });
         const apiUser = response.data;
+        
+        const apiVoice = apiUser.voice || apiUser.defaultVoice || "male";
+
         setFormData((prev) => ({
           ...prev,
           name: apiUser.username || prev.name,
           email: apiUser.email || prev.email,
-          defaultVoice: apiUser.defaultVoice || prev.defaultVoice,
+          defaultVoice: apiVoice,
         }));
         setUserID(apiUser.id);
         setProfilePhoto(apiUser.avatar || userData.avatar || null);
         localStorage.setItem("userId", apiUser.id);
-        localStorage.setItem("defaultVoice", apiUser.defaultVoice || userData.defaultVoice);
+        localStorage.setItem("voice", apiVoice);
       } catch (error) {
         console.error("Error fetching user data:", error);
-        alert("Không thể tải thông tin người dùng: " + error.message);
+        alert(`${t.fetchError} ${error.message}`);
       } finally {
-        setIsLoading(false); // Kết thúc loading
+        setIsLoading(false);
       }
     };
 
     loadUserData();
   }, []);
-
-  const printCurlCommand = (url, config, method = "GET") => {
-    const { headers, body } = config;
-    const headerStrings = Object.entries(headers || {}).map(([key, value]) => `-H "${key}: ${value}"`);
-    const bodyString = body ? `-d '${body}'` : "";
-    const curlCommand = [
-      `curl -X ${method}`,
-      `"${url}"`,
-      ...headerStrings,
-      bodyString,
-    ]
-      .filter(Boolean)
-      .join(" \\\n  ");
-    console.log("Curl command:\n", curlCommand);
-    return curlCommand;
-  };
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files[0];
@@ -150,7 +165,7 @@ export default function Profile() {
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Ảnh phải dưới 1MB");
+      alert(t.imgSize);
     }
   };
 
@@ -158,39 +173,30 @@ export default function Profile() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleTogglePassword = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const handleToggleNewPassword = () => {
-    setShowNewPassword(!showNewPassword);
-  };
-
-  const handleToggleConfirmPassword = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+  const handleTogglePassword = () => setShowPassword(!showPassword);
+  const handleToggleNewPassword = () => setShowNewPassword(!showNewPassword);
+  const handleToggleConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
 
   const handleSaveProfile = async () => {
     try {
       if (!formData.name.trim() || !formData.email.trim()) {
-        alert("Vui lòng điền đầy đủ họ và tên và email.");
+        alert(t.fillInfo);
         return;
       }
 
       if (!userID) {
-        alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        alert(t.notFoundError);
         navigate("/login");
         return;
       }
-      const voiceValue = formData.defaultVoice === "Giọng nam" ? "male" : "female";
 
-      const response = await fetchWithAuth(`/users/${userID}`, {
+      await fetchWithAuth(`/users/${userID}`, {
         method: "PATCH",
         body: JSON.stringify({
           username: formData.name,
           email: formData.email,
           avatar: profilePhoto,
-          voice: voiceValue,
+          voice: formData.defaultVoice,
         }),
       });
 
@@ -198,8 +204,7 @@ export default function Profile() {
       localStorage.setItem("email", formData.email);
       localStorage.setItem("avatar", profilePhoto || "");
       localStorage.setItem("voice", formData.defaultVoice);
-      console.log("response", response)
-      alert("Cập nhật thông tin cá nhân thành công!");
+      alert(t.updateSuccess);
     } catch (error) {
       console.error("Error updating profile:", error);
       const errorMessage = error.response?.data?.message || error.message;
@@ -207,16 +212,16 @@ export default function Profile() {
 
       switch (errorCode) {
         case 20004:
-          alert("Không tìm thấy người dùng.");
+          alert(t.notFoundError);
           break;
         case 20007:
-          alert("Email đã được sử dụng.");
+          alert(t.emailInUse);
           break;
         case 20009:
-          alert("Bạn không có quyền cập nhật thông tin này.");
+          alert(t.noPermission);
           break;
         default:
-          alert("Không thể cập nhật thông tin: " + errorMessage);
+          alert(`${t.updateError} ${errorMessage}`);
       }
     }
   };
@@ -228,11 +233,11 @@ export default function Profile() {
         !formData.newPassword.trim() ||
         !formData.confirmNewPassword.trim()
       ) {
-        alert("Vui lòng điền đầy đủ các trường mật khẩu.");
+        alert(t.fillPass);
         return;
       }
       if (formData.newPassword !== formData.confirmNewPassword) {
-        alert("Mật khẩu mới và xác nhận mật khẩu không khớp.");
+        alert(t.passMismatch);
         return;
       }
 
@@ -243,7 +248,7 @@ export default function Profile() {
       }
 
       if (!userID) {
-        alert("Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.");
+        alert(t.notFoundError);
         navigate("/login");
         return;
       }
@@ -254,10 +259,9 @@ export default function Profile() {
           old_password: formData.password,
         }),
       };
-      printCurlCommand(`/users/${userID}/change-password`, config, "PATCH");
       await fetchWithAuth(`/users/${userID}/change-password`, config);
 
-      alert("Đổi mật khẩu thành công! Đăng xuất hệ thống.");
+      alert(t.passChangeSuccess);
       setFormData((prev) => ({
         ...prev,
         password: "",
@@ -272,38 +276,35 @@ export default function Profile() {
 
       switch (errorCode) {
         case 20004:
-          alert("Không tìm thấy người dùng.");
+          alert(t.notFoundError);
           break;
         case 20005:
-          alert("Mật khẩu hiện tại không đúng.");
+          alert(t.wrongPass);
           break;
         case 20008:
-          alert("Mật khẩu xác nhận không hợp lệ.");
+          alert(t.invalidConfirm);
           break;
         case 20009:
-          alert("Bạn không có quyền đổi mật khẩu.");
+          alert(t.noPermission);
           break;
         default:
-          alert("Không thể đổi mật khẩu: " + errorMessage);
+          alert(`${t.passChangeError} ${errorMessage}`);
       }
     }
   };
 
   const handleLogout = async () => {
     try {
-      console.log("Sending logout request to: /api/v1/session/signout");
-      const response = await fetchWithAuth("/session/signout", {
+      await fetchWithAuth("/session/signout", {
         method: "DELETE",
       });
 
-      console.log("Logout API response:", response);
-
       localStorage.clear();
-      alert("Đăng xuất thành công!");
+      alert(t.logoutSuccess);
       navigate("/login");
     } catch (error) {
       console.error("Error during logout:", error.message);
-      alert("Đã xảy ra lỗi khi đăng xuất: " + error.message);
+      alert(`${t.logoutError} ${error.message}`);
       localStorage.clear();
       navigate("/login");
     }
@@ -315,7 +316,6 @@ export default function Profile() {
         <SkeletonProfile />
       ) : (
         <div className="flex flex-col md:flex-row gap-10 w-full max-w-5xl">
-          {/* Left side - Profile Photo */}
           <div className="flex flex-col items-center gap-4 rounded-lg shadow p-8">
             <div className="relative">
               <Avatar
@@ -326,7 +326,7 @@ export default function Profile() {
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white flex justify-center items-center h-10">
                 <label className="cursor-pointer flex items-center gap-1">
                   <UploadFile fontSize="small" className="profile" />
-                  <span>Upload Photo</span>
+                  <span className="text-sm">{t.uploadPhoto}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -337,11 +337,10 @@ export default function Profile() {
               </div>
             </div>
             <p className="text-gray-500 text-sm text-center">
-              Ảnh phải dưới 1MB và tỷ lệ ảnh cần là 1:1
+              {t.imgFormatReq}
             </p>
           </div>
 
-          {/* Right side - Tabs */}
           <div className="flex-1">
             <Tabs
               value={tabIndex}
@@ -350,14 +349,14 @@ export default function Profile() {
               indicatorColor="primary"
               className="mb-6"
             >
-              <Tab label="Thông tin cá nhân" />
-              <Tab label="Đổi mật khẩu" />
+              <Tab label={t.tabInfo} />
+              <Tab label={t.tabPass} />
             </Tabs>
 
             {tabIndex === 0 && (
               <div className="flex flex-col gap-6 min-h-[320px]">
                 <TextField
-                  label="Họ và tên"
+                  label={t.fullName}
                   name="name"
                   variant="outlined"
                   fullWidth
@@ -365,7 +364,7 @@ export default function Profile() {
                   onChange={handleChange}
                 />
                 <TextField
-                  label="Email"
+                  label={t.email}
                   name="email"
                   variant="outlined"
                   fullWidth
@@ -373,16 +372,16 @@ export default function Profile() {
                   onChange={handleChange}
                 />
                 <FormControl fullWidth variant="outlined">
-                  <InputLabel>Giọng mặc định</InputLabel>
+                  <InputLabel>{t.defaultVoiceLabel}</InputLabel>
                   <Select
-                    label="Giọng mặc định"
+                    label={t.defaultVoiceLabel}
                     name="defaultVoice"
                     value={formData.defaultVoice}
                     onChange={handleChange}
                   >
                     {voiceOptions.map((voice) => (
-                      <MenuItem key={voice} value={voice}>
-                        {voice}
+                      <MenuItem key={voice.value} value={voice.value}>
+                        {voice.label}
                       </MenuItem>
                     ))}
                   </Select>
@@ -394,7 +393,7 @@ export default function Profile() {
                     className="bg-orange-500 hover:bg-orange-600"
                     onClick={handleSaveProfile}
                   >
-                    Lưu Thay Đổi
+                    {t.saveChanges}
                   </Button>
                   <Button
                     variant="contained"
@@ -402,7 +401,7 @@ export default function Profile() {
                     className="hover:bg-red-700"
                     onClick={handleLogout}
                   >
-                    Đăng Xuất
+                    {t.logoutBtn}
                   </Button>
                 </div>
               </div>
@@ -417,13 +416,13 @@ export default function Profile() {
                 />
                 <TextField
                   fullWidth
-                  label="Mật khẩu hiện tại"
+                  label={t.currentPass}
                   name="password"
                   type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handleChange}
                   variant="outlined"
-                  placeholder="Mật khẩu hiện tại"
+                  placeholder={t.currentPass}
                   autoComplete="off"
                   slotProps={{
                     input: {
@@ -439,13 +438,13 @@ export default function Profile() {
                 />
                 <TextField
                   fullWidth
-                  label="Mật khẩu mới"
+                  label={t.newPass}
                   name="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   value={formData.newPassword}
                   onChange={handleChange}
                   variant="outlined"
-                  placeholder="Mật khẩu mới"
+                  placeholder={t.newPass}
                   autoComplete="new-password"
                   slotProps={{
                     input: {
@@ -461,13 +460,13 @@ export default function Profile() {
                 />
                 <TextField
                   fullWidth
-                  label="Nhập lại mật khẩu mới"
+                  label={t.confirmNewPass}
                   name="confirmNewPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={formData.confirmNewPassword}
                   onChange={handleChange}
                   variant="outlined"
-                  placeholder="Nhập lại mật khẩu mới"
+                  placeholder={t.confirmNewPass}
                   autoComplete="new-password"
                   slotProps={{
                     input: {
@@ -487,7 +486,7 @@ export default function Profile() {
                   className="mt-4 bg-orange-500 hover:bg-orange-600"
                   onClick={handleChangePassword}
                 >
-                  Lưu Thay Đổi
+                  {t.saveChanges}
                 </Button>
               </form>
             )}

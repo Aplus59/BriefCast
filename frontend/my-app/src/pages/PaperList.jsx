@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import NewsCard from "../components/common/NewsCard";
-import { Pagination } from "@mui/material";
+import { Pagination, TextField, Autocomplete, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import PauseIcon from "@mui/icons-material/Pause";
 import SkipNextIcon from "@mui/icons-material/SkipNext";
 import SkipPreviousIcon from "@mui/icons-material/SkipPrevious";
@@ -83,7 +83,15 @@ function PaperList() {
     localStorage.getItem("scrollMode") || "autoscroll"
   );
   const voice = localStorage.getItem("voice") || "Giọng nam";
+  const language = localStorage.getItem("language") || "en";
   const [volume, setVolume] = useState(1);
+  const topicParam = query.get("topic");
+  const selectedTopics = topicParam ? topicParam.split(",") : [];
+
+  // Topics vary by language
+  const TOPICS_EN = ["World", "Politics", "Technology", "Science", "Health", "Business", "Sports", "Entertainment"];
+  const TOPICS_FR = ["Monde", "Politique", "Technologie", "Sciences", "Santé", "Economie", "Sports", "Culture"];
+  const topics = language === "fr" ? TOPICS_FR : TOPICS_EN;
 
   const handleScrollModeToggle = () => {
     const newMode = scrollMode === "autoscroll" ? "noscroll" : "autoscroll";
@@ -123,6 +131,8 @@ function PaperList() {
       params.append("sort_order", sortOrder);
       params.append("page", page);
       params.append("limit", itemsPerPage);
+      params.append("lang", language);
+      if (topicParam) params.append("topic", topicParam);
       if (topicId && topicId !== "latest") {
         params.append("topic_ids[]", topicId);
       }
@@ -165,15 +175,15 @@ function PaperList() {
         setTotalPages(response.meta?.total_pages || response.data?.meta?.total_pages || 1);
       } else {
         console.warn("Invalid API response, no data available.");
+        console.log(language === "fr" ? "Aucune donnée disponible depuis le serveur." : "Invalid API response, no data available.");
         setNewsItems([]);
         setTotalPages(1);
-        console.log("Dữ liệu từ server không hợp lệ hoặc trống.");
       }
     } catch (error) {
       console.error("API error:", error);
       setNewsItems([]);
       setTotalPages(1);
-      console.log("Không thể tải bài viết. Vui lòng thử lại sau.");
+      console.log(language === "fr" ? "Impossible de charger les articles. Veuillez réessayer plus tard." : "Unable to load articles. Please try again later.");
 
     } finally {
       setIsLoading(false); // Kết thúc loading
@@ -223,8 +233,38 @@ function PaperList() {
     favorite,
     sortOrder,
     currentPage,
+    topicParam,
     navigate,
   ]);
+
+  const handleTopicsChange = (event, newValue) => {
+    const newParams = new URLSearchParams(window.location.search);
+    if (newValue && newValue.length > 0) {
+      newParams.set("topic", newValue.join(","));
+    } else {
+      newParams.delete("topic");
+    }
+    navigate(`/papers?${newParams.toString()}`);
+    setCurrentPage(1);
+    stopCurrentAudio();
+  };
+
+  const handleSortChange = (event) => {
+    const newParams = new URLSearchParams(window.location.search);
+    newParams.set("sort", event.target.value);
+    navigate(`/papers?${newParams.toString()}`);
+    setCurrentPage(1);
+  };
+
+  const handleDateChange = (type, value) => {
+    const newParams = new URLSearchParams(window.location.search);
+    if (value) {
+      newParams.set(type, value);
+    } else {
+      newParams.delete(type);
+    }
+    navigate(`/papers?${newParams.toString()}`);
+  };
 
   useEffect(() => {
     if (
@@ -315,7 +355,7 @@ function PaperList() {
         setCurrentAudioIndex(0);
         setShowAudioControls(true);
       } else {
-        console.log("Bài viết này không có audio.");
+        console.log(language === "fr" ? "Cet article n'a pas d'audio." : "This article has no audio.");
 
       }
     }
@@ -363,7 +403,7 @@ function PaperList() {
   const handlePlaySingleAudio = (articleId) => {
     const articleIndex = newsItems.findIndex((item) => item.id === articleId);
     if (articleIndex === -1 || !newsItems[articleIndex].audioUrl) {
-      console.log("Bài viết này không có audio.");
+      console.log(language === "fr" ? "Cet article n'a pas d'audio." : "This article has no audio.");
 
       return;
     }
@@ -396,7 +436,7 @@ function PaperList() {
         setCurrentAudioIndex(0);
         setShowAudioControls(true);
       } else {
-        console.log("Bài viết này không có audio.")
+        console.log(language === "fr" ? "Cet article n'a pas d'audio." : "This article has no audio.");
       }
     } else if (isPlayingList) {
       handlePlayList();
@@ -404,8 +444,8 @@ function PaperList() {
   };
 
   const displayTitle = favorite
-    ? "Yêu thích"
-    : search || (topicId && topicTitle) || (type && "Tin mới");
+    ? (language === "fr" ? "Favoris" : "Favorites")
+    : search || (topicId && topicTitle) || (type && (language === "fr" ? "Nouvelles" : "Latest News"));
   console.log("topic id", topicId, "searchQuery", search, "Tin", type);
 
   return (
@@ -490,9 +530,57 @@ function PaperList() {
           </div>
         )}
       </div>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center xl:max-w-5xl max-w-4xl w-full mb-4 gap-2">
-        <div className="text-xl sm:text-2xl font-bold text-gray-800">
-          {displayTitle}
+      <div className="flex flex-col xl:max-w-5xl max-w-4xl w-full mb-4 gap-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="text-xl sm:text-2xl font-bold text-gray-800">
+            {displayTitle}
+          </div>
+          <div className="text-sm text-gray-500 font-medium">
+            {language === "fr" ? "🇫🇷 Français" : "🇬🇧 English"}
+          </div>
+        </div>
+
+        {/* Topic Multi-Select */}
+        <div className="w-full">
+          <Autocomplete
+            multiple
+            id="topic-select"
+            options={topics}
+            value={selectedTopics}
+            onChange={handleTopicsChange}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="outlined"
+                label={language === "fr" ? "Sujets" : "Topics"}
+                placeholder={language === "fr" ? "Rechercher des sujets..." : "Search topics..."}
+                size="small"
+              />
+            )}
+            className="bg-white"
+          />
+        </div>
+        
+        {/* Filters Row */}
+        <div className="flex flex-wrap gap-4 items-center mt-2">
+          <TextField
+            label={language === "fr" ? "Du" : "From"}
+            type="date"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            value={fromDate || ""}
+            onChange={(e) => handleDateChange("from", e.target.value)}
+            sx={{ width: 150 }}
+          />
+          <TextField
+            label={language === "fr" ? "Au" : "To"}
+            type="date"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            value={toDate || ""}
+            onChange={(e) => handleDateChange("to", e.target.value)}
+            sx={{ width: 150 }}
+          />
         </div>
       </div>
 
@@ -506,8 +594,7 @@ function PaperList() {
             <div
               key={item.id || idx}
               ref={(el) => (newsItemRefs.current[idx] = el)}
-              onClick={() => navigate(`/papers/${item.id}`)}
-              className={`cursor-pointer ${
+              className={`${
                 currentAudioIndex === idx && isPlayingList
                   ? "border-2 border-red-500 rounded-lg"
                   : ""
@@ -524,7 +611,11 @@ function PaperList() {
             </div>
           ))
         ) : (
-          <div className="text-center text-gray-600">{favorite && "Bạn chưa yêu thích bài báo nào." || "Không có bài báo nào."}</div>
+          <div className="text-center text-gray-600 font-medium py-8">
+            {favorite 
+              ? (language === "fr" ? "Vous n'avez pas encore d'articles favoris." : "You haven't liked any articles yet.") 
+              : (language === "fr" ? "Aucun article trouvé." : "No articles found.")}
+          </div>
         )}
         <div className="flex justify-center pt-4">
           <Pagination

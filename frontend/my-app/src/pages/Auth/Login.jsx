@@ -13,11 +13,29 @@ import { fetchWithAuth } from "../../utils/api";
 
 const Login = () => {
   const navigate = useNavigate();
+  const language = localStorage.getItem("language") || "en";
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  const t = {
+    fillFields: language === "fr" ? "Veuillez remplir l'e-mail et le mot de passe." : "Please fill in both email and password.",
+    invalidEmail: language === "fr" ? "Veuillez entrer une adresse Gmail valide (ex: example@gmail.com)." : "Please enter a valid Gmail address (e.g. example@gmail.com).",
+    loginSuccess: language === "fr" ? "Connexion réussie !" : "Login successful!",
+    accountNotFound: language === "fr" ? "Le compte n'existe pas." : "Account does not exist.",
+    wrongPassword: language === "fr" ? "Mot de passe incorrect." : "Incorrect password.",
+    emailInUse: language === "fr" ? "E-mail déjà utilisé." : "Email already in use.",
+    loginError: language === "fr" ? "Une erreur s'est produite lors de la connexion." : "An error occurred during login.",
+    loginFailed: language === "fr" ? "Échec de la connexion :" : "Login failed:",
+    signIn: language === "fr" ? "Se connecter" : "Sign In",
+    password: language === "fr" ? "Mot de passe" : "Password",
+    forgotPassword: language === "fr" ? "Mot de passe oublié ?" : "Forgot password?",
+    noAccount: language === "fr" ? "Vous n'avez pas de compte ? " : "Don't have an account? ",
+    signUp: language === "fr" ? "S'inscrire" : "Sign Up",
+    illustration: language === "fr" ? "Illustration de connexion" : "Login illustration",
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,25 +46,18 @@ const Login = () => {
   };
 
   const handleSubmit = async () => {
-    // Validate input fields
     if (!formData.email.trim() || !formData.password.trim()) {
-      alert("Vui lòng điền đầy đủ email và mật khẩu.");
+      alert(t.fillFields);
       return;
     }
 
-    // Validate Gmail format
     const emailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
     if (!emailRegex.test(formData.email.trim())) {
-      alert("Vui lòng nhập địa chỉ Gmail hợp lệ (ví dụ: example@gmail.com).");
+      alert(t.invalidEmail);
       return;
     }
 
     try {
-      console.log("Sending request with payload:", JSON.stringify({
-        email: formData.email,
-        password: formData.password,
-      }));
-
       const data = await fetchWithAuth("/session/signin", {
         method: "POST",
         body: JSON.stringify({
@@ -54,10 +65,6 @@ const Login = () => {
           password: formData.password,
         }),
       });
-
-      console.log("Full response:", JSON.stringify(data, null, 2));
-      console.log("Data object:", data.data);
-      console.log("User object:", data.data?.user);
 
       if (!data.data || typeof data.data !== "object") {
         throw new Error("Data object is missing or invalid in response");
@@ -67,9 +74,7 @@ const Login = () => {
       }
 
       const user = data.data.user;
-      console.log("Đăng nhập thành công:", data.data);
 
-      // Store data in localStorage
       localStorage.setItem("accessToken", data.data.access_token);
       localStorage.setItem("refreshToken", data.data.refresh_token);
       localStorage.setItem("userId", user.id || "unknown");
@@ -78,19 +83,20 @@ const Login = () => {
       localStorage.setItem("role", user.role || "USER");
       localStorage.setItem("avatar", user.avatar || "");
 
-      const voiceValue = (user.voice || "male") === "male" ? "Giọng nam" : "Giọng nữ";
+      // Ensure voice is stored internally as "male"/"female" or localized later
+      const voiceValue = (user.voice || "male") === "male" ? "male" : "female";
       localStorage.setItem("voice", voiceValue);
 
-      alert("Đăng nhập thành công!");
-      navigate("/"); // Redirect to dashboard
+      alert(t.loginSuccess);
+      navigate("/"); 
     } catch (error) {
       console.error("Lỗi đăng nhập:", error.message, error.stack);
       const errorMessage = {
-        20004: "Tài khoản không tồn tại.",
-        20005: "Mật khẩu không đúng.",
-        20007: "Email đã được sử dụng.",
-      }[error.code] || error.message || "Đã xảy ra lỗi khi đăng nhập.";
-      alert(`Đăng nhập thất bại: ${errorMessage}`);
+        20004: t.accountNotFound,
+        20005: t.wrongPassword,
+        20007: t.emailInUse,
+      }[error.code] || error.message || t.loginError;
+      alert(`${t.loginFailed} ${errorMessage}`);
     }
   };
 
@@ -104,14 +110,14 @@ const Login = () => {
         <div className="text-center">
           <img
             src={illustration}
-            alt="Minh họa đăng nhập"
+            alt={t.illustration}
             className="w-full h-full mx-auto"
           />
         </div>
       </div>
       <div className="w-3/5 flex items-center justify-center">
         <div className="w-1/2 h-1/2">
-          <h1 className="text-5xl font-bold mb-20 text-center">Đăng nhập</h1>
+          <h1 className="text-5xl font-bold mb-20 text-center">{t.signIn}</h1>
           <div className="space-y-9">
             <TextField
               fullWidth
@@ -124,13 +130,13 @@ const Login = () => {
             />
             <TextField
               fullWidth
-              label="Mật khẩu"
+              label={t.password}
               name="password"
               type={showPassword ? "text" : "password"}
               value={formData.password}
               onChange={handleChange}
               variant="outlined"
-              placeholder="Mật khẩu"
+              placeholder={t.password}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -147,13 +153,13 @@ const Login = () => {
           <div className="flex flex-row justify-between mt-5">
             <div className="">
               <Link href="#" className="orange">
-                Quên mật khẩu?
+                {t.forgotPassword}
               </Link>
             </div>
             <div>
-              <span>Bạn chưa có tài khoản? </span>
+              <span>{t.noAccount}</span>
               <Link href="#" className="green" onClick={() => navigate("/register")}>
-                Đăng ký
+                {t.signUp}
               </Link>
             </div>
           </div>
@@ -163,7 +169,7 @@ const Login = () => {
               className="custom-button"
               onClick={handleSubmit}
             >
-              Đăng nhập
+              {t.signIn}
             </Button>
           </div>
         </div>

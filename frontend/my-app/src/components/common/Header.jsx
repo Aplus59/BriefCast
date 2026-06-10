@@ -1,4 +1,4 @@
-import { Avatar, Badge, IconButton, InputBase, Select, MenuItem, TextField } from "@mui/material";
+import { Avatar, Badge, IconButton, InputBase } from "@mui/material";
 import { FavoriteBorder, NotificationsNone } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -7,39 +7,34 @@ import NewspaperIcon from '@mui/icons-material/Newspaper';
 export default function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [sortOrder, setSortOrder] = useState("newest");
   const [userAvatar, setUserAvatar] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem("language") || "en");
 
   useEffect(() => {
     const avatar = localStorage.getItem("avatar") || "";
     setUserAvatar(avatar);
+    setIsLoggedIn(!!localStorage.getItem("token"));
   }, []);
+
+  const handleLanguageToggle = () => {
+    const newLang = language === "en" ? "fr" : "en";
+    setLanguage(newLang);
+    localStorage.setItem("language", newLang);
+    // Dispatch custom event so other components can react
+    window.dispatchEvent(new CustomEvent("languageChange", { detail: { language: newLang } }));
+    // Reload current page to re-fetch articles in the new language
+    window.location.reload();
+  };
 
   const handleSearchChange = (event) => {
     setSearchQuery(event.target.value);
-  };
-
-  const handleFromDateChange = (event) => {
-    setFromDate(event.target.value);
-  };
-
-  const handleToDateChange = (event) => {
-    setToDate(event.target.value);
-  };
-
-  const handleSortChange = (event) => {
-    setSortOrder(event.target.value);
   };
 
   const handleSearch = (event) => {
     if (event.key === "Enter" && searchQuery.trim()) {
       const queryParams = new URLSearchParams();
       queryParams.append("search", searchQuery.trim());
-      if (fromDate) queryParams.append("from", fromDate);
-      if (toDate) queryParams.append("to", toDate);
-      queryParams.append("sort", sortOrder);
 
       localStorage.removeItem("topic_title");
 
@@ -83,7 +78,7 @@ export default function Header() {
             />
           </svg>
           <InputBase
-            placeholder="What do you want to learn..."
+            placeholder={language === "fr" ? "Que voulez-vous apprendre..." : "What do you want to learn..."}
             fullWidth
             inputProps={{ "aria-label": "search" }}
             className="w-full"
@@ -92,36 +87,22 @@ export default function Header() {
             onKeyPress={handleSearch}
           />
         </div>
-        <div className="flex items-center space-x-2">
-          <TextField
-            label="Từ ngày"
-            type="date"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 140 }}
-            value={fromDate}
-            onChange={handleFromDateChange}
-          />
-          <TextField
-            label="Đến ngày"
-            type="date"
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ width: 140 }}
-            value={toDate}
-            onChange={handleToDateChange}
-          />
-        </div>
-        <Select
-          value={sortOrder}
-          onChange={handleSortChange}
-          className="w-32"
-          size="small"
-          sx={{ backgroundColor: "white", borderRadius: "8px" }}
+
+        {/* Language Toggle */}
+        <button
+          id="language-toggle-btn"
+          onClick={handleLanguageToggle}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full border-2 font-semibold text-sm transition-all duration-200"
+          style={{
+            borderColor: language === "fr" ? "#0055A4" : "#CF101A",
+            color: language === "fr" ? "#0055A4" : "#CF101A",
+            background: language === "fr" ? "#eef3ff" : "#fff5f5",
+          }}
+          title={`Switch to ${language === "en" ? "French" : "English"}`}
         >
-          <MenuItem value="newest">Mới nhất</MenuItem>
-          <MenuItem value="oldest">Cũ nhất</MenuItem>
-        </Select>
+          <span style={{ fontSize: "1rem" }}>{language === "en" ? "🇬🇧" : "🇫🇷"}</span>
+          <span>{language === "en" ? "EN" : "FR"}</span>
+        </button>
       </div>
 
       <div className="flex items-center space-x-4 mt-2 sm:mt-0">
@@ -133,11 +114,21 @@ export default function Header() {
         <IconButton onClick={handleFavoriteClick}>
           <FavoriteBorder />
         </IconButton>
-        <Avatar
-          onClick={() => navigate(`/profile`)}
-          src={userAvatar || "/avatar.jpg"}
-          alt="User"
-        />
+        {isLoggedIn ? (
+          <Avatar
+            onClick={() => navigate(`/profile`)}
+            src={userAvatar || "/avatar.jpg"}
+            alt="User"
+            className="cursor-pointer"
+          />
+        ) : (
+          <button 
+            onClick={() => navigate('/login')}
+            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition text-sm"
+          >
+            {language === "fr" ? "Se connecter" : "Sign In"}
+          </button>
+        )}
       </div>
     </header>
   );
