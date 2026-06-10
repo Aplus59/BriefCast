@@ -45,6 +45,12 @@ try:
                 distance=models.Distance.COSINE
             )
         )
+        print("Creating payload index for 'language'...")
+        cloud_client.create_payload_index(
+            collection_name=COLLECTION_NAME,
+            field_name="language",
+            field_schema=models.PayloadSchemaType.KEYWORD,
+        )
 except Exception as e:
     print(f"❌ Lỗi khi setup collection trên cloud: {e}")
     sys.exit(1)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -164,7 +165,8 @@ func searchQdrant(vector []float32, lang string, limit int) ([]string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("qdrant error: %d", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("qdrant error: %d, body: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	var res QdrantSearchResponse

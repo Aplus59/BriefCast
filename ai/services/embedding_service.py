@@ -26,6 +26,11 @@ try:
                 distance=models.Distance.COSINE
             )
         )
+        qdrant.create_payload_index(
+            collection_name=COLLECTION_NAME,
+            field_name="language",
+            field_schema=models.PayloadSchemaType.KEYWORD,
+        )
         print(f"Created Qdrant collection: {COLLECTION_NAME}")
 except Exception as e:
     print(f"Warning: Qdrant Client could not be initialized: {e}")
