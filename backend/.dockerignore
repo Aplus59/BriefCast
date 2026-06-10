@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.idea/
+.vscode/
+bin/
+api-server
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out

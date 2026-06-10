@@ -5,7 +5,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from core.config import settings
 
-openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
 
 # Initialize Qdrant Client
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")

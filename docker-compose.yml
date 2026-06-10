@@ -35,6 +35,8 @@ services:
       - GUARDIAN_API_KEY=${GUARDIAN_API_KEY}
       - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
       - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+      - MODE=${MODE:-continuous}
+      - BACKFILL_DAYS=${BACKFILL_DAYS:-30}
     depends_on:
       - qdrant
       - redis

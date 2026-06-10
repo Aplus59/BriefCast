@@ -3,7 +3,7 @@ from openai import OpenAI
 from google.cloud import storage
 from core.config import settings
 
-openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=60.0)
 
 # Initialize GCS Client (Requires GOOGLE_APPLICATION_CREDENTIALS environment variable set in production)
 # For local dev without creds, we'll gracefully fallback or mock the URL

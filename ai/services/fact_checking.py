@@ -2,7 +2,7 @@ from serpapi import GoogleSearch
 from openai import OpenAI
 from core.config import settings
 
-openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
 
 def get_serp_results(query: str) -> str:
     if not settings.SERPAPI_API_KEY:

@@ -1,0 +1,41 @@
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.so
+.venv/
+venv/
+env/
+
+# Go
+backend/api-server
+backend/*.exe
+
+# Node / Frontend
+frontend/my-app/node_modules/
+frontend/my-app/dist/
+frontend/my-app/.env
+frontend/my-app/.env.local
+
+# Docker
+*.log
+
+# GCS credentials
+*.json
+service-account*.json
+gcs-credentials*.json
+
+# OS
+.DS_Store
+Thumbs.db

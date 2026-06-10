@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: briefcast-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: MONGO_URI
+        sync: false   # Set this manually in Render dashboard
+    healthCheckPath: /api/v1/articles?lang=en&limit=1
+    autoDeploy: true

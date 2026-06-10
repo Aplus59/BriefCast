@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Storage
     GCS_BUCKET_NAME: str = os.getenv("GCS_BUCKET_NAME", "briefcast-audio-bucket")
     
+    # Operation Mode
+    MODE: str = os.getenv("MODE", "continuous")
+    BACKFILL_DAYS: int = int(os.getenv("BACKFILL_DAYS", "30"))
+    
     class Config:
         env_file = ".env"
 

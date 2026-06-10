@@ -25,15 +25,19 @@ def extract_topic_from_url(url: str) -> str:
         return path_parts[1].capitalize()
     return path_parts[0].capitalize()
 
-def fetch_guardian_news():
-    print("Fetching news from The Guardian API...")
+def fetch_guardian_news(target_date_str: str = None, limit: int = 10):
+    print(f"Fetching news from The Guardian API (Date: {target_date_str or 'Latest'}, Limit: {limit})...")
     params = {
         "api-key": settings.GUARDIAN_API_KEY,
         "show-blocks": "body",
         "show-fields": "thumbnail",
-        "page-size": 1,
+        "page-size": limit,
         "order-by": "newest"
     }
+    
+    if target_date_str:
+        params["from-date"] = target_date_str
+        params["to-date"] = target_date_str
     
     try:
         response = requests.get(GUARDIAN_API_URL, params=params)
@@ -62,6 +66,14 @@ def fetch_guardian_news():
             
             # Check if exists
             if articles_en_collection.find_one({"url": url}):
+                continue
+                
+            if not raw_content or len(raw_content) < 50:
+                print(f"Skipping: {title} (Content too short)")
+                continue
+                
+            if "crossword" in title.lower() or topic.lower() == "crosswords":
+                print(f"Skipping: {title} (Crossword)")
                 continue
                 
             article_doc = {

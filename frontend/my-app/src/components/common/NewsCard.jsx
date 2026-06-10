@@ -1,6 +1,4 @@
 import { Card, CardContent, Link, Typography } from '@mui/material';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PauseIcon from '@mui/icons-material/Pause';
 
@@ -18,7 +16,7 @@ const formatDate = (datetime) => {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
-export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, favorite, onFavoriteClick, audioUrl, isPlaying, onPlayAudio, reliabilityScore, topic, source }) {
+export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, audioUrl, isPlaying, onPlayAudio, reliabilityScore, topic, source }) {
   const language = localStorage.getItem("language") || "en";
   return (
     <Card className="flex flex-col sm:flex-row items-start gap-4 paper-list rounded-lg overflow-hidden h-full">
@@ -59,9 +57,7 @@ export default function NewsCard({ title, content, imageUrl, linkPaper, datetime
             {language === 'fr' ? 'Lien vers l\'article' : 'Article Link'}
           </Link>
           <div className="ml-3">{formatDate(datetime)}</div>
-          <button className="ml-3" onClick={(e) => { e.stopPropagation(); onFavoriteClick(); }}>
-            {favorite ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon />}
-          </button>
+
           {audioUrl && (
             <button className="ml-3" onClick={(e) => { e.stopPropagation(); onPlayAudio(); }}>
               {isPlaying ? <PauseIcon /> : <VolumeUpIcon />}

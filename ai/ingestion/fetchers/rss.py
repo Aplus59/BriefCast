@@ -53,7 +53,7 @@ def fetch_rss_feeds():
     for feed_info in RSS_FEEDS:
         try:
             feed = feedparser.parse(feed_info["url"])
-            for entry in feed.entries[:1]: # Process top 1 latest entries for testing
+            for entry in feed.entries: # Process all available entries
                 url = entry.link
                 title = entry.title
                 
@@ -78,6 +78,10 @@ def fetch_rss_feeds():
                     fetched_text = fetch_full_text(url)
                     if fetched_text:
                         raw_content = fetched_text
+
+                if not raw_content or len(raw_content) < 50:
+                    print(f"Skipping RSS: {title} (Content too short)")
+                    continue
 
                 # Try to get image url
                 image_url = None

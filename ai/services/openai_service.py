@@ -1,7 +1,7 @@
 from openai import OpenAI
 from core.config import settings
 
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
+client = OpenAI(api_key=settings.OPENAI_API_KEY, timeout=30.0)
 
 def summarize_article(content: str, language: str) -> str:
     """Summarizes the raw content of an article."""

@@ -75,7 +75,6 @@ function PaperList() {
   const type = query.get("type");
   const fromDate = query.get("from");
   const toDate = query.get("to");
-  const favorite = query.get("favorite") === "true";
   const sortOrder = query.get("sort") === "newest" ? "desc" : "asc";
   const topicTitle = localStorage.getItem("topic_title") || "";
   const newsItemRefs = useRef([]);
@@ -153,7 +152,6 @@ function PaperList() {
       if (search) params.append("search", search);
       if (fromDate) params.append("from", fromDate);
       if (toDate) params.append("to", toDate);
-      if (favorite) params.append("favorite", favorite);
       params.append("sort_by", "published_date");
       params.append("sort_order", sortOrder);
       params.append("page", page);
@@ -205,7 +203,6 @@ function PaperList() {
             source: item.source?.name || item.source || "Unknown",
             topic: topicVal,
             topicId: item.topic?.id || null,
-            favorite: item.is_favorite || false,
             reliabilityScore: item.reliability_score || 0,
             audioUrl,
           };
@@ -229,38 +226,6 @@ function PaperList() {
     }
   };
 
-  const handleFavoriteClick = async (articleId) => {
-    try {
-      const article = newsItems.find((item) => item.id === articleId);
-      if (!article) return;
-
-      const isFavorited = article.favorite;
-      const url = isFavorited
-        ? `/articles/${articleId}/unfavorite`
-        : `/articles/${articleId}/favorite`;
-
-      console.log(`Sending favorite/unfavorite request to: ${url}`);
-      const response = await fetchWithAuth(url, {
-        method: "POST",
-      });
-      console.log("Favorite/Unfavorite API response:", response);
-
-      // Cập nhật trạng thái favorite trong newsItems
-      setNewsItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === articleId ? { ...item, favorite: !isFavorited } : item
-        )
-      );
-
-      // Nếu đang ở trang favorite, reload lại danh sách bài viết
-      if (favorite) {
-        await fetchNews(currentPage);
-      }
-    } catch (error) {
-      console.error("Favorite/Unfavorite error:", error);
-    }
-  };
-
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchNews(currentPage);
@@ -269,7 +234,6 @@ function PaperList() {
     topicId,
     fromDate,
     toDate,
-    favorite,
     sortOrder,
     currentPage,
     topicParam,
@@ -482,9 +446,7 @@ function PaperList() {
     }
   };
 
-  const displayTitle = favorite
-    ? (language === "fr" ? "Favoris" : "Favorites")
-    : search || (topicId && topicTitle) || (type && (language === "fr" ? "Nouvelles" : "Latest News"));
+  const displayTitle = search || (topicId && topicTitle) || (type && (language === "fr" ? "Nouvelles" : "Latest News"));
   console.log("topic id", topicId, "searchQuery", search, "Tin", type);
 
   return (
@@ -642,8 +604,6 @@ function PaperList() {
               >
                 <NewsCard
                   {...item}
-                  favorite={item.favorite}
-                  onFavoriteClick={() => handleFavoriteClick(item.id)}
                   audioUrl={item.audioUrl}
                   isPlaying={singleAudioPlayingId === item.id}
                   onPlayAudio={() => handlePlaySingleAudio(item.id)}
@@ -652,9 +612,7 @@ function PaperList() {
             ))
           ) : (
             <div className="col-span-1 xl:col-span-2 text-center text-gray-600 font-medium py-8">
-              {favorite 
-                ? (language === "fr" ? "Vous n'avez pas encore d'articles favoris." : "You haven't liked any articles yet.") 
-                : (language === "fr" ? "Aucun article trouvé." : "No articles found.")}
+              {language === "fr" ? "Aucun article trouvé." : "No articles found."}
             </div>
           )}
         </div>

@@ -59,7 +59,7 @@ const refreshAccessToken = async () => {
   const refreshToken = localStorage.getItem("refreshToken");
   if (!refreshToken) {
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
     return null;
   }
 
@@ -76,7 +76,7 @@ const refreshAccessToken = async () => {
   } catch (error) {
     console.error("Token refresh error:", error.message);
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/";
     return null;
   }
 };

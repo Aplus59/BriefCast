@@ -1,21 +1,12 @@
-import { Avatar, Badge, IconButton, InputBase } from "@mui/material";
-import { FavoriteBorder, NotificationsNone } from "@mui/icons-material";
+import { InputBase } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 
 export default function Header() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [userAvatar, setUserAvatar] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [language, setLanguage] = useState(() => localStorage.getItem("language") || "en");
-
-  useEffect(() => {
-    const avatar = localStorage.getItem("avatar") || "";
-    setUserAvatar(avatar);
-    setIsLoggedIn(!!localStorage.getItem("token"));
-  }, []);
 
   const handleLanguageToggle = () => {
     const newLang = language === "en" ? "fr" : "en";
@@ -47,12 +38,6 @@ export default function Header() {
     navigate("/");
   };
 
-  // Handle click on Favorite button
-  const handleFavoriteClick = () => {
-    localStorage.setItem("topic_title", "Favorites");
-    localStorage.removeItem("search_query");
-    navigate("/papers?favorite=true");
-  };
 
   return (
     <header className="flex flex-col sm:flex-row items-center justify-between p-4 bg-white shadow-sm space-y-2 sm:space-y-0">
@@ -105,31 +90,7 @@ export default function Header() {
         </button>
       </div>
 
-      <div className="flex items-center space-x-4 mt-2 sm:mt-0">
-        <IconButton>
-          <Badge color="error" variant="dot" overlap="circular">
-            <NotificationsNone />
-          </Badge>
-        </IconButton>
-        <IconButton onClick={handleFavoriteClick}>
-          <FavoriteBorder />
-        </IconButton>
-        {isLoggedIn ? (
-          <Avatar
-            onClick={() => navigate(`/profile`)}
-            src={userAvatar || "/avatar.jpg"}
-            alt="User"
-            className="cursor-pointer"
-          />
-        ) : (
-          <button 
-            onClick={() => navigate('/login')}
-            className="px-4 py-1.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition text-sm"
-          >
-            {language === "fr" ? "Se connecter" : "Sign In"}
-          </button>
-        )}
-      </div>
+
     </header>
   );
 }
