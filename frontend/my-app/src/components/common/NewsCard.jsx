@@ -2,14 +2,12 @@ import { Card, CardContent, Link, Typography } from '@mui/material';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import PauseIcon from '@mui/icons-material/Pause';
 
-// Function to format date
 const formatDate = (datetime) => {
   if (!datetime || datetime === "N/A") return "";
   const date = new Date(datetime);
-  if (isNaN(date.getTime())) return datetime; // fallback to original string if invalid
-  
+  if (isNaN(date.getTime())) return datetime;
   const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
@@ -18,21 +16,37 @@ const formatDate = (datetime) => {
 
 export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, audioUrl, isPlaying, onPlayAudio, reliabilityScore, topic, source }) {
   const language = localStorage.getItem("language") || "en";
+
   return (
-    <Card className="flex flex-col sm:flex-row items-start gap-4 paper-list rounded-lg overflow-hidden h-full">
-      <img src={imageUrl} loading="lazy" alt="news" className="w-full sm:w-48 h-48 sm:h-full object-cover shrink-0" />
-      <CardContent className="p-4 w-full flex flex-col justify-between h-full">
-        <Typography variant="h6" className="mb-2 title">
+    <Card className="flex flex-col sm:flex-row items-start paper-list rounded-lg overflow-hidden h-full shadow-sm hover:shadow-md transition-shadow duration-200">
+      {/* Image — slightly square, fixed width on desktop, prevents vertical stretching */}
+      <div className="w-full sm:w-56 shrink-0 aspect-[4/3] sm:aspect-square sm:py-4 sm:pl-4">
+        <img
+          src={imageUrl}
+          loading="lazy"
+          alt="news"
+          className="w-full h-full object-cover block sm:rounded-lg"
+          onError={(e) => { e.target.src = 'https://images.pexels.com/photos/518543/pexels-photo-518543.jpeg'; }}
+        />
+      </div>
+
+      {/* Content */}
+      <CardContent className="flex flex-col p-4 w-full flex-1 min-h-full">
+
+        {/* Title */}
+        <Typography className="text-base sm:text-lg font-bold leading-tight mb-2">
           {title}
         </Typography>
-        <div className="text-gray-600 space-y-2 mb-3">
+
+        {/* Summary — Full text, responsive font size */}
+        <div className="text-sm text-gray-600 leading-relaxed mb-4 flex-1">
           {content.map((item, index) => (
-            <Typography key={index} variant="body2">
-              {item}
-            </Typography>
+            <p key={index} className="mb-1">{item}</p>
           ))}
         </div>
-        <div className="flex flex-wrap gap-2 items-center mt-2 mb-1">
+
+        {/* Tags */}
+        <div className="flex flex-wrap gap-2 mb-4">
           {topic && (
             <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
               {topic}
@@ -43,27 +57,35 @@ export default function NewsCard({ title, content, imageUrl, linkPaper, datetime
               {source}
             </span>
           )}
-          {reliabilityScore !== undefined && reliabilityScore > 0 && (
-            <div 
-              className="px-2 py-0.5 rounded text-white text-xs font-bold"
+          {reliabilityScore > 0 && (
+            <span 
+              className="px-2 py-0.5 rounded text-xs font-bold text-white"
               style={{ backgroundColor: reliabilityScore >= 8 ? '#22c55e' : reliabilityScore >= 5 ? '#eab308' : '#ef4444' }}
             >
               ✓ {reliabilityScore}/10
-            </div>
+            </span>
           )}
         </div>
-        <div className="flex flex-row justify-end items-center mt-1 gap-2 flex-wrap">
-          <Link href={linkPaper} target="_blank" rel="noopener noreferrer" className="orange">
-            {language === 'fr' ? 'Lien vers l\'article' : 'Article Link'}
-          </Link>
-          <div className="ml-3">{formatDate(datetime)}</div>
 
-          {audioUrl && (
-            <button className="ml-3" onClick={(e) => { e.stopPropagation(); onPlayAudio(); }}>
-              {isPlaying ? <PauseIcon /> : <VolumeUpIcon />}
-            </button>
-          )}
+        {/* Footer */}
+        <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-gray-100 mt-auto">
+          <Link href={linkPaper} target="_blank" rel="noopener noreferrer"
+            className="text-xs sm:text-sm font-semibold text-orange-500 hover:text-orange-600 no-underline">
+            {language === 'fr' ? "Lien vers l'article" : 'Article Link'}
+          </Link>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-400">{formatDate(datetime)}</span>
+            {audioUrl && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onPlayAudio(); }}
+                className="text-gray-500 hover:text-gray-700 p-1"
+              >
+                {isPlaying ? <PauseIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
+              </button>
+            )}
+          </div>
         </div>
+
       </CardContent>
     </Card>
   );

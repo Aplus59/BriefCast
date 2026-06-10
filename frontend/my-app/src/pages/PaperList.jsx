@@ -586,7 +586,7 @@ function PaperList() {
       </div>
 
       <div className="bg-white rounded-xl shadow max-w-5xl xl:max-w-7xl 2xl:max-w-[1600px] w-full px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 w-full">
+        <div className="grid grid-cols-1 min-[1440px]:grid-cols-2 gap-6 w-full">
           {isLoading ? (
             Array(5).fill().map((_, idx) => (
               <SkeletonNewsCard key={idx} />
