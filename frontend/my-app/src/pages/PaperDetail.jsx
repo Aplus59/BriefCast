@@ -114,17 +114,18 @@ function PaperDetail() {
           const formattedArticle = {
             id: item.id || id,
             title: item.title || "Untitled",
-            content: item.summary || ["No content available"],
+            content: item.summary ? [item.summary] : ["No content available"],
             imageUrl:
-              item.image ||
+              item.image_url || item.image ||
               "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
             linkPaper: item.url || "#",
-            datetime: item.published_date || "N/A",
-            source: item.source?.name || "Unknown",
+            datetime: item.published_at || item.published_date || "N/A",
+            source: item.source?.name || item.source || "Unknown",
             topicId: item.topic?.id || null,
-            audioUrl: voice === "Giọng nam" ? 
+            reliabilityScore: item.reliability_score || 0,
+            audioUrl: item.audio_url || (voice === "Giọng nam" ? 
               (item.male_audio?.url || null) : 
-              (item.female_audio?.url || null),
+              (item.female_audio?.url || null)),
           };
           setArticle(formattedArticle);
 
@@ -136,15 +137,16 @@ function PaperDetail() {
             const formattedRelated = relatedResponse.data
               .filter((relatedItem) => relatedItem.id !== id)
               .map((relatedItem) => ({
-                id: relatedItem.id || `related-${Math.random()}`,
+                id: relatedItem.id || relatedItem._id || `related-${Math.random()}`,
                 title: relatedItem.title || "Untitled",
-                content: relatedItem.summary || ["No summary available"],
+                content: relatedItem.summary ? [relatedItem.summary] : ["No summary available"],
                 imageUrl:
-                  relatedItem.image ||
+                  relatedItem.image_url || relatedItem.image ||
                   "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
-                audioUrl: voice === "Giọng nam" ? 
+                reliabilityScore: relatedItem.reliability_score || 0,
+                audioUrl: relatedItem.audio_url || (voice === "Giọng nam" ? 
                   (relatedItem.male_audio?.url || null) : 
-                  (relatedItem.female_audio?.url || null),
+                  (relatedItem.female_audio?.url || null)),
               }));
             setRelatedArticles(formattedRelated);
           } else {
@@ -346,13 +348,18 @@ function PaperDetail() {
             />
             <div className="flex-1">
               <h2 className="text-lg md:text-xl font-bold mb-2">{article.title}</h2>
+              {article.reliabilityScore > 0 && (
+                <div className={`inline-block px-2 py-1 mb-2 rounded text-white text-xs font-bold ${article.reliabilityScore >= 8 ? 'bg-green-500' : article.reliabilityScore >= 5 ? 'bg-yellow-500' : 'bg-red-500'}`}>
+                  Độ tin cậy: {article.reliabilityScore}/10
+                </div>
+              )}
               <ul className="list-disc pl-5 text-gray-200 text-sm md:text-base mb-1">
                 {article.content.map((line, i) => (
                   <li key={i}>{line}</li>
                 ))}
               </ul>
               <div className="flex flex-wrap items-center mt-4 text-sm md:text-base">
-                <span className="ml-auto">Nguồn: {article.source}</span>
+                <span className="mr-auto">Nguồn: {article.source}</span>
                 <a
                   href={article.linkPaper}
                   target="_blank"
@@ -361,7 +368,7 @@ function PaperDetail() {
                 >
                   Link bài báo
                 </a>
-                <span className="mt-2 md:mt-0 ml-2">Ngày xuất bản: {formatDate(article.datetime)}</span>
+                <span className="mt-2 md:mt-0 ml-4">Ngày xuất bản: {formatDate(article.datetime)}</span>
               </div>
             </div>
           </div>
@@ -395,6 +402,11 @@ function PaperDetail() {
                 />
                 <div>
                   <h4 className="font-bold text-sm md:text-base mb-1">{item.title}</h4>
+                  {item.reliabilityScore > 0 && (
+                    <div className={`inline-block px-2 py-0.5 mb-1 rounded text-white text-[10px] font-bold ${item.reliabilityScore >= 8 ? 'bg-green-500' : item.reliabilityScore >= 5 ? 'bg-yellow-500' : 'bg-red-500'}`}>
+                      Tin cậy: {item.reliabilityScore}/10
+                    </div>
+                  )}
                   <ul className="list-disc pl-5 text-gray-600 text-xs">
                     {item.content.slice(0, 2).map((line, i) => (
                       <li key={i}>{line}</li>

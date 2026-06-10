@@ -32,6 +32,9 @@ services:
       # Note: Set API keys in your local environment or an .env file
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - GUARDIAN_API_KEY=${GUARDIAN_API_KEY}
+      - GCS_BUCKET_NAME=${GCS_BUCKET_NAME}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
     depends_on:
       - qdrant
       - redis

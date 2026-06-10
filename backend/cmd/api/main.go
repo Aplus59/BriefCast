@@ -26,6 +26,7 @@ type Article struct {
 	Summary          string             `bson:"summary" json:"summary"`
 	ReliabilityScore int                `bson:"reliability_score" json:"reliability_score"`
 	AudioURL         string             `bson:"audio_url" json:"audio_url"`
+	ImageURL         string             `bson:"image_url" json:"image_url"`
 }
 
 func main() {

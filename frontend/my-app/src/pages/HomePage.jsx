@@ -12,27 +12,15 @@ import { fetchWithAuth } from "../utils/api";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { SkeletonTopicCard, SkeletonNewsCard } from '../components/common/Skeleton';
 
-const fakeTopics = [
-  { id: 1, title: "Nông nghiệp", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 2, title: "Chính phủ", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 3, title: "Thể thao", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 4, title: "Giáo dục", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 5, title: "Khoa học", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 6, title: "Y tế", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 7, title: "Văn học", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-  { id: 8, title: "Toán", imgUrl: "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg" },
-];
+// Removed fake topics as the backend doesn't support topics currently
 
 export default function HomeContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
   // --- Data variables ---
-  const [topics, setTopics] = useState(fakeTopics);
   const [latestNews, setLatestNews] = useState({ big: null, small: [] });
-  const [currentPage, setCurrentPage] = useState(0);
-  const [isLoading, setIsLoading] = useState(true); // Thêm trạng thái loading
-  const itemsPerPage = 4;
+  const [isLoading, setIsLoading] = useState(true);
 
   // --- Audio states ---
   const [isPlayingList, setIsPlayingList] = useState(false);
@@ -54,40 +42,17 @@ export default function HomeContent() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        setIsLoading(true); // Bắt đầu loading
-        await Promise.all([fetchTopics(), fetchLatestNews()]);
-        setIsLoading(false); // Kết thúc loading
+        setIsLoading(true);
+        await fetchLatestNews();
+        setIsLoading(false);
       } catch (error) {
-        console.error("Lỗi khi kiểm tra người dùng:", error);
+        console.error("Error loading data:", error);
         setIsLoading(false);
       }
     };
 
     checkUser();
   }, [navigate]);
-
-  // --- Fetch topics ---
-  const fetchTopics = async () => {
-    try {
-      const data = await fetchWithAuth("/topics/suggest");
-      console.log('Topics API response:', data);
-
-      if (data && Array.isArray(data.data)) {
-        const formattedTopics = data.data.map((topic) => ({
-          id: topic.id || Math.random(),
-          title: topic.title || topic.name || "Unknown Topic",
-          imgUrl: topic.imgUrl || topic.image || "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
-        }));
-        setTopics(formattedTopics);
-      } else {
-        console.warn('Dữ liệu API topics không hợp lệ, dùng dữ liệu giả.');
-        setTopics(fakeTopics);
-      }
-    } catch (error) {
-      console.error('Lỗi gọi API topics:', error);
-      setTopics(fakeTopics);
-    }
-  };
 
   // --- Fetch latest news ---
   const fetchLatestNews = async () => {
@@ -101,27 +66,34 @@ export default function HomeContent() {
       });
 
       const data = await fetchWithAuth(`/articles?${params.toString()}`);
-      const articles = data.data.data;
-      if (articles && Array.isArray(articles) && articles.length > 0) {
+      
+      let articles = [];
+      if (Array.isArray(data)) {
+        articles = data;
+      } else if (data && data.data && Array.isArray(data.data.data)) {
+        articles = data.data.data;
+      }
+
+      if (articles.length > 0) {
         const bigNews = {
-          id: articles[0].id || Math.random(),
+          id: articles[0].id || articles[0]._id || Math.random(),
           title: articles[0].title || 'Unknown Title',
-          content: articles[0].summary || ['No content available'],
-          imgUrl: articles[0].image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
+          content: articles[0].summary ? [articles[0].summary] : ['No content available'],
+          imgUrl: articles[0].image_url || articles[0].image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
           is_favorite: articles[0].is_favorite || false,
-          audioUrl: voice === "Giọng nam" ? 
+          audioUrl: articles[0].audio_url || (voice === "Giọng nam" ? 
             (articles[0].male_audio?.url || null) : 
-            (articles[0].female_audio?.url || null),
+            (articles[0].female_audio?.url || null)),
         };
 
         const smallNews = articles.slice(1, 5).map((article) => ({
-          id: article.id || Math.random(),
+          id: article.id || article._id || Math.random(),
           title: article.title || 'Unknown Title',
-          imgUrl: article.image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
+          imgUrl: article.image_url || article.image || 'https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg',
           is_favorite: article.is_favorite || false,
-          audioUrl: voice === "Giọng nam" ? 
+          audioUrl: article.audio_url || (voice === "Giọng nam" ? 
             (article.male_audio?.url || null) : 
-            (article.female_audio?.url || null),
+            (article.female_audio?.url || null)),
         }));
         setLatestNews({
           big: bigNews,
@@ -137,38 +109,6 @@ export default function HomeContent() {
     }
   };
 
-  // --- Handlers ---
-  const handlePrev = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 0));
-  };
-
-  const handleNext = () => {
-    if ((currentPage + 1) * itemsPerPage < topics.length) {
-      setCurrentPage((prev) => prev + 1);
-    }
-  };
-
-  // --- Handle topic click ---
-  const handleTopicClick = async (topicId) => {
-    try {
-      const selectedTopic = topics.find((topic) => topic.id === topicId);
-      if (selectedTopic) {
-        localStorage.setItem("topic_title", selectedTopic.title);
-        navigate(`/papers?topic_id=${topicId}`);
-      } else {
-        console.warn("Topic not found for id:", topicId);
-        navigate("/papers");
-      }
-    } catch (error) {
-      console.error("Lỗi khi xử lý click chủ đề:", error);
-    }
-  };
-
-  // --- Calculate displayed topics ---
-  const displayedTopics = topics.slice(
-    currentPage * itemsPerPage,
-    (currentPage + 1) * itemsPerPage
-  );
 
   // --- Audio handlers ---
   const stopCurrentAudio = (resetControls = true) => {
@@ -290,65 +230,21 @@ export default function HomeContent() {
   };
 
   return (
-    <div className="h-full w-full px-4 md:px-24 xl:px-40 2xl:px-60">
-      {/* Topics Section */}
-      <section className="mb-8 h-full">
-        <div className="flex justify-between items-center mt-8 mb-4">
-          <h2 className="text-2xl font-bold">Chủ đề cho bạn</h2>
-          <div className="space-x-2">
-            <IconButton size="small" onClick={handlePrev} disabled={currentPage === 0}>
-              <ArrowBackIos fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={handleNext}
-              disabled={(currentPage + 1) * itemsPerPage >= topics.length}
-            >
-              <ArrowForwardIos fontSize="small" />
-            </IconButton>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 py-6 px-2 sm:px-4 md:px-6 lg:px-10 rounded-lg shadow">
-          {isLoading ? (
-            Array(4).fill().map((_, idx) => (
-              <SkeletonTopicCard key={idx} />
-            ))
-          ) : (
-            displayedTopics.map((topic) => (
-              <div
-                key={topic.id}
-                className="flex flex-col justify-between items-center py-6 rounded-md bg-gray cursor-pointer"
-                onClick={() => handleTopicClick(topic.id)}
-              >
-                <span className="text-lg font-bold text-center mb-4">{topic.title}</span>
-                <div className="lg:h-[15vh] lg:w-[20vh] xl:h-[18vh] xl:w-[23vh] md:h-[15vh] md:w-[20vh] ">
-                  <img
-                    src={topic.imgUrl}
-                    alt={topic.title}
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover rounded-md"
-                  />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
+    <div className="h-full w-full px-4 md:px-24 xl:px-40 2xl:px-60 pt-8">
 
       {/* Latest News Section */}
       <section>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-2xl font-bold">Tin mới</h2>
+          <h2 className="text-2xl font-bold">Latest News</h2>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => {
-                localStorage.setItem("topic_title", "Tin mới");
+                localStorage.setItem("topic_title", "Latest News");
                 navigate(`/papers?type=latest`);
               }}
               className="text-sm bg-gray p-2 text-black rounded-lg"
             >
-              Xem thêm
+              View More
             </button>
             {!showAudioControls ? (
               <button onClick={handlePlayList}>
@@ -466,7 +362,7 @@ export default function HomeContent() {
             </div>
           </div>
         ) : (
-          <div className="text-center text-gray-600">Không có tin tức mới.</div>
+          <div className="text-center text-gray-600">No news available.</div>
         )}
       </section>
     </div>

@@ -130,45 +130,44 @@ function PaperList() {
       const response = await fetchWithAuth(`/articles?${params.toString()}`);
       console.log("API response:", response);
 
-      if (response.data && Array.isArray(response.data.data)) {
-        if (response.data.data.length === 0) {
-          setNewsItems([]);
-          setTotalPages(1);
-        
-          console.log("Không tìm thấy", response);
+      let dataArray = [];
+      if (Array.isArray(response)) {
+        dataArray = response;
+      } else if (response && response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data;
+      }
 
-          return;
-        }
-
-        const formattedItems = response.data.data.map((item) => {
+      if (dataArray.length > 0) {
+        const formattedItems = dataArray.map((item) => {
           const audioUrl =
-            voice === "Giọng nam"
+            item.audio_url || (voice === "Giọng nam"
               ? item.male_audio?.url || null
-              : item.female_audio?.url || null;
+              : item.female_audio?.url || null);
 
           return {
-            id: item.id || `fallback-${Math.random()}`,
+            id: item.id || item._id || `fallback-${Math.random()}`,
             title: item.title || "Untitled",
-            content: item.summary || ["No summary available"],
+            content: item.summary ? [item.summary] : ["No summary available"],
             imageUrl:
-              item.image ||
+              item.image_url || item.image ||
               "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg",
             linkPaper: item.url || "#",
-            datetime: item.published_date || "N/A",
-            source: item.source?.name || "Unknown",
+            datetime: item.published_at || item.published_date || "N/A",
+            source: item.source?.name || item.source || "Unknown",
             topic: item.topic?.name || "General",
             topicId: item.topic?.id || null,
             favorite: item.is_favorite || false,
+            reliabilityScore: item.reliability_score || 0,
             audioUrl,
           };
         });
         setNewsItems(formattedItems);
-        setTotalPages(response.data.meta?.total_pages || 1);
+        setTotalPages(response.meta?.total_pages || response.data?.meta?.total_pages || 1);
       } else {
         console.warn("Invalid API response, no data available.");
         setNewsItems([]);
         setTotalPages(1);
-        console.log("Dữ liệu từ server không hợp lệ.");
+        console.log("Dữ liệu từ server không hợp lệ hoặc trống.");
       }
     } catch (error) {
       console.error("API error:", error);

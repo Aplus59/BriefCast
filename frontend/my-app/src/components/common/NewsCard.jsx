@@ -15,7 +15,7 @@ const formatDate = (datetime) => {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 
-export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, favorite, onFavoriteClick, audioUrl, isPlaying, onPlayAudio }) {
+export default function NewsCard({ title, content, imageUrl, linkPaper, datetime, favorite, onFavoriteClick, audioUrl, isPlaying, onPlayAudio, reliabilityScore }) {
   return (
     <Card className="flex items-center gap-4 paper-list rounded-lg">
       <img src={imageUrl} loading="lazy" alt="news" className="w-[26vh] h-[25vh] object-cover rounded" />
@@ -30,7 +30,12 @@ export default function NewsCard({ title, content, imageUrl, linkPaper, datetime
             </li>
           ))}
         </ul>
-        <div className="flex flex-row justify-end items-center">
+        <div className="flex flex-row justify-end items-center mt-2">
+          {reliabilityScore !== undefined && reliabilityScore > 0 && (
+            <div className={`mr-auto px-2 py-1 rounded text-white text-xs font-bold ${reliabilityScore >= 8 ? 'bg-green-500' : reliabilityScore >= 5 ? 'bg-yellow-500' : 'bg-red-500'}`}>
+              Độ tin cậy: {reliabilityScore}/10
+            </div>
+          )}
           <Link href={linkPaper} className="orange">Link bài báo</Link>
           <div className="ml-5">{formatDate(datetime)}</div>
           <button className="ml-5" onClick={(e) => { e.stopPropagation(); onFavoriteClick(); }}>

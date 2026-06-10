@@ -34,7 +34,7 @@ def fetch_rss_feeds():
     for feed_info in RSS_FEEDS:
         try:
             feed = feedparser.parse(feed_info["url"])
-            for entry in feed.entries[:10]: # Process top 10 latest entries
+            for entry in feed.entries[:1]: # Process top 1 latest entries for testing
                 url = entry.link
                 title = entry.title
                 

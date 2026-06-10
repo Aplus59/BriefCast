@@ -18,7 +18,7 @@ def fetch_guardian_news():
         "api-key": settings.GUARDIAN_API_KEY,
         "show-blocks": "body",
         "show-fields": "thumbnail",
-        "page-size": 10,
+        "page-size": 1,
         "order-by": "newest"
     }
     
