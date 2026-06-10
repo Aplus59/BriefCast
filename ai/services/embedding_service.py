@@ -29,10 +29,16 @@ except Exception as e:
     qdrant = None
 
 def generate_and_store_embedding(text: str, article_metadata: dict) -> str:
-    """Generates vector embedding and stores it in Qdrant."""
+    """Generates vector embedding and stores it in Qdrant.
+    Uses a deterministic UUID based on article_id to prevent duplicates.
+    """
     if not text or not qdrant:
         return None
-        
+
+    article_id = article_metadata.get("article_id", "")
+    if not article_id:
+        return None
+
     try:
         # 1. Generate Embedding
         response = openai_client.embeddings.create(
@@ -40,16 +46,19 @@ def generate_and_store_embedding(text: str, article_metadata: dict) -> str:
             model="text-embedding-3-small"
         )
         vector = response.data[0].embedding
-        
-        # 2. Store in Qdrant
-        point_id = str(uuid.uuid4())
+
+        # 2. Create deterministic UUID from article_id
+        # uuid5 with same article_id always produces same UUID → upsert overwrites instead of duplicating
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_OID, article_id))
+
+        # 3. Store in Qdrant (upsert = insert or overwrite)
         qdrant.upsert(
             collection_name=COLLECTION_NAME,
             points=[
                 models.PointStruct(
                     id=point_id,
                     vector=vector,
-                    payload=article_metadata # Store source, language, title for filtering
+                    payload=article_metadata
                 )
             ]
         )

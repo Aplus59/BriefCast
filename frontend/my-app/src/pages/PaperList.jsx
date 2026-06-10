@@ -62,6 +62,7 @@ function PaperList() {
   const [newsItems, setNewsItems] = useState(defaultNewsItems);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
   const [isPlayingList, setIsPlayingList] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentAudioIndex, setCurrentAudioIndex] = useState(-1);
@@ -88,6 +89,27 @@ function PaperList() {
   const selectedTopics = topicParam ? topicParam.split(",") : [];
 
   const [topics, setTopics] = useState([]);
+
+  useEffect(() => {
+    if (search) {
+      setSearchInput(search);
+    } else {
+      setSearchInput("");
+    }
+  }, [search]);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      const currentParams = new URLSearchParams(window.location.search);
+      if (searchInput.trim()) {
+        currentParams.set("search", searchInput.trim());
+      } else {
+        currentParams.delete("search");
+      }
+      currentParams.delete("page");
+      navigate(`/papers?${currentParams.toString()}`);
+    }
+  };
 
   useEffect(() => {
     const fetchTopics = async () => {
@@ -536,30 +558,44 @@ function PaperList() {
           <div className="text-xl sm:text-2xl font-bold text-gray-800">
             {displayTitle}
           </div>
-          <div className="text-sm text-gray-500 font-medium">
-            {language === "fr" ? "🇫🇷 Français" : "🇬🇧 English"}
-          </div>
         </div>
 
-        {/* Topic Multi-Select */}
-        <div className="w-full">
-          <Autocomplete
-            multiple
-            id="topic-select"
-            options={topics}
-            value={selectedTopics}
-            onChange={handleTopicsChange}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                variant="outlined"
-                label={language === "fr" ? "Sujets" : "Topics"}
-                placeholder={language === "fr" ? "Rechercher des sujets..." : "Search topics..."}
-                size="small"
-              />
-            )}
-            className="bg-white"
-          />
+        {/* Search and Topic Filters */}
+        <div className="flex flex-col md:flex-row w-full gap-4 items-stretch">
+          {/* Search Bar - 2/3 */}
+          <div className="w-full md:w-2/3">
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              placeholder={language === "fr" ? "Recherche sémantique (ex: l'intelligence artificielle...)" : "Semantic search (e.g., artificial intelligence...)"}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              className="bg-white"
+            />
+          </div>
+
+          {/* Topic Multi-Select - 1/3 */}
+          <div className="w-full md:w-1/3">
+            <Autocomplete
+              multiple
+              id="topic-select"
+              options={topics}
+              value={selectedTopics}
+              onChange={handleTopicsChange}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  variant="outlined"
+                  label={language === "fr" ? "Sujets" : "Topics"}
+                  placeholder={language === "fr" ? "Rechercher des sujets..." : "Search topics..."}
+                  size="small"
+                />
+              )}
+              className="bg-white"
+            />
+          </div>
         </div>
         
         {/* Filters Row */}

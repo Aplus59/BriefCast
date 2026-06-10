@@ -34,7 +34,10 @@ export default function NewsCard({ title, content, imageUrl, linkPaper, datetime
       <CardContent className="flex flex-col p-4 w-full flex-1 min-h-full">
 
         {/* Title */}
-        <Typography className="text-base sm:text-lg font-bold leading-tight mb-2">
+        <Typography
+          className="text-base sm:text-lg leading-tight mb-2"
+          sx={{ fontWeight: 700, fontSize: { xs: '0.95rem', sm: '1.05rem' }, lineHeight: 1.35 }}
+        >
           {title}
         </Typography>
 
